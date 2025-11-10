@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分析仪表板导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .network-info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 25px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+
+        .network-info .ip-address {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #FFD700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .dashboard-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .dashboard-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .dashboard-description {
+            font-size: 1rem;
+            color: #7f8c8d;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .dashboard-features {
+            list-style: none;
+            margin-bottom: 25px;
+        }
+
+        .dashboard-features li {
+            padding: 5px 0;
+            color: #95a5a6;
+            font-size: 0.9rem;
+        }
+
+        .dashboard-features li::before {
+            content: "✓";
+            color: #27ae60;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .open-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .open-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+
+        .update-time {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .dashboard-card {
+                padding: 30px 20px;
+            }
+        }
+
+        /* 加载动画 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dashboard-card {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .dashboard-card:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #27ae60;
+            box-shadow: 0 0 10px rgba(39, 174, 96, 0.5);
+        }
+
+        .status-indicator::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            border: 2px solid #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>数据分析仪表板</h1>
+        <p>选择要查看的分析报告</p>
+
+        <div class="network-info">
+            <div>🌐 局域网访问地址</div>
+            <div class="ip-address" id="ipAddress">获取中...</div>
+        </div>
+
+        <div class="update-time">
+            <div id="updateTime">最后更新: 加载中...</div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card" onclick="openDashboard('store')">
+            <div class="status-indicator"></div>
+            <div class="dashboard-icon">📊</div>
+            <h2 class="dashboard-title">门店业务指标分析</h2>
+            <p class="dashboard-description">
+                深入分析门店运营数据，包括营收、客流、转化率等关键指标的走势分析
+            </p>
+            <ul class="dashboard-features">
+                <li>三门店数据对比（平安、侨城、双玺）</li>
+                <li>营收与客流趋势分析</li>
+                <li>转化率漏斗分析</li>
+                <li>客户来源渠道分析</li>
+                <li>服务时长效率分析</li>
+            </ul>
+            <button class="open-btn">打开分析报告</button>
+        </div>
+
+        <div class="dashboard-card" onclick="openDashboard('nurse')">
+            <div class="status-indicator"></div>
+            <div class="dashboard-icon">👥</div>
+            <h2 class="dashboard-title">护理师表现雷达图</h2>
+            <p class="dashboard-description">
+                多维度评估护理师专业能力，通过雷达图直观展示团队整体表现
+            </p>
+            <ul class="dashboard-features">
+                <li>护理师技能维度分析</li>
+                <li>团队表现雷达图</li>
+                <li>个人能力评估</li>
+                <li>培训需求识别</li>
+                <li>绩效对比分析</li>
+            </ul>
+            <button class="open-btn">打开分析报告</button>
+        </div>
+
+        <div class="dashboard-card" onclick="openDashboard('ranking')">
+            <div class="status-indicator"></div>
+            <div class="dashboard-icon">🏆</div>
+            <h2 class="dashboard-title">护理师排名对比表</h2>
+            <p class="dashboard-description">
+                详细的技能排名对比，支持按门店筛选和全公司对比，一目了然查看各项指标排名
+            </p>
+            <ul class="dashboard-features">
+                <li>全公司技能排名对比</li>
+                <li>按门店筛选排名</li>
+                <li>多维度排名展示</li>
+                <li>综合得分计算</li>
+                <li>冠军信息汇总</li>
+            </ul>
+            <button class="open-btn">打开排名表格</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>💡 提示：点击卡片即可打开对应的分析报告</p>
+        <p style="margin-top: 10px; font-size: 0.8rem;">© 2024 数据分析系统 | 支持局域网访问</p>
+    </div>
+
+    <script>
+        // 获取本机IP地址
+        async function getLocalIPAddress() {
+            try {
+                // 尝试通过WebRTC获取本地IP
+                const pc = new RTCPeerConnection({
+                    iceServers: []
+                });
+                pc.createDataChannel('');
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const candidate = await new Promise((resolve) => {
+                    pc.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            resolve(event.candidate.candidate);
+                        }
+                    };
+                });
+
+                const ipMatch = candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+                if (ipMatch) {
+                    return ipMatch[1];
+                }
+            } catch (error) {
+                console.log('WebRTC方法失败，尝试备用方法');
+            }
+
+            // 备用方法：返回一个常见的局域网IP段提示
+            return '请查看网络设置';
+        }
+
+        // 更新IP地址显示
+        async function updateIPAddress() {
+            const ipElement = document.getElementById('ipAddress');
+            const ip = await getLocalIPAddress();
+
+            if (ip && ip !== '请查看网络设置') {
+                ipElement.innerHTML = `http://${ip}:8080`;
+            } else {
+                // 使用系统命令获取IP（需要Node.js环境支持）
+                ipElement.innerHTML = 'http://[您的IP地址]:8080';
+            }
+        }
+
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('updateTime').textContent = `最后更新: ${timeString}`;
+        }
+
+        // 打开对应的分析报告
+        function openDashboard(type) {
+            const baseUrl = window.location.origin;
+
+            if (type === 'store') {
+                // 打开门店指标分析页面
+                window.open(`门店指标走势分析.html`, '_blank');
+            } else if (type === 'nurse') {
+                // 打开护理师雷达图页面
+                window.open(`/nurse-radar.html`, '_blank');
+            } else if (type === 'ranking') {
+                // 打开护理师排名表格页面
+                window.open(`ranking-table.html`, '_blank');
+            }
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateIPAddress();
+            updateTime();
+
+            // 每分钟更新时间
+            setInterval(updateTime, 60000);
+
+            // 添加键盘快捷键支持
+            document.addEventListener('keydown', function(event) {
+                if (event.key === '1') {
+                    openDashboard('store');
+                } else if (event.key === '2') {
+                    openDashboard('nurse');
+                } else if (event.key === '3') {
+                    openDashboard('ranking');
+                }
+            });
+        });
+
+        // 检查服务器状态
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/api/status');
+                if (response.ok) {
+                    console.log('服务器运行正常');
+                }
+            } catch (error) {
+                console.log('服务器未响应，可能需要启动HTTP服务器');
+            }
+        }
+
+        // 定期检查服务器状态
+        setInterval(checkServerStatus, 30000);
+    </script>
+</body>
+</html>
