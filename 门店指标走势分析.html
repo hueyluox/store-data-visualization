@@ -1,0 +1,3432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>门店业务指标走势分析系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+        <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .store-selector {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .store-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .store-tab {
+            padding: 10px 25px;
+            border: none;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .store-tab:hover {
+            background: #e9ecef;
+        }
+
+        .store-tab.active {
+            background: white;
+            color: #667eea;
+            border-color: #667eea;
+            border-bottom-color: white;
+            position: relative;
+            top: 2px;
+        }
+
+        .content {
+            padding: 30px;
+            background: white;
+        }
+
+        .charts-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 35px;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .chart-container:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border-color: #dee2e6;
+        }
+
+        .chart-container::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .chart-container:hover::before {
+            opacity: 0.1;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .chart-subtitle {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+
+
+        .legend-custom {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+
+        /* 图表导航样式 - 悬浮触发 */
+        .chart-navigation-trigger {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1001;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 18px;
+        }
+
+        .chart-navigation-trigger:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .chart-navigation-trigger.active {
+            background: #e74c3c;
+        }
+
+        .chart-navigation {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            z-index: 1000;
+            max-height: 70vh;
+            overflow-y: auto;
+            min-width: 150px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .chart-navigation.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+            pointer-events: all;
+        }
+
+        .chart-navigation:hover {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        /* 导航标题 */
+        .navigation-header {
+            user-select: none;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        /* 响应式时隐藏导航 */
+        @media (max-width: 1200px) {
+            .chart-navigation-trigger {
+                top: auto;
+                bottom: 20px;
+            }
+
+            .chart-navigation {
+                top: auto;
+                bottom: 70px;
+                max-height: 200px;
+                max-width: 200px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .chart-navigation-trigger,
+            .chart-navigation {
+                display: none;
+            }
+        }
+
+        .chart-navigation h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            text-decoration: none;
+            color: #495057;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateX(-2px);
+        }
+
+        .nav-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .nav-group {
+            margin-bottom: 15px;
+        }
+
+        .nav-group-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #6c757d;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .charts-grid {
+                flex-direction: column;
+            }
+
+            .store-tabs {
+                flex-wrap: wrap;
+            }
+
+                }
+    /* 转化分析图表样式 */
+        .chart-subsection {
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-subsection::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .subsection-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            border-left: 3px solid #667eea;
+        }
+
+        .chart-wrapper-small {
+            height: 350px;
+            position: relative;
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+            border: 1px solid #f1f3f5;
+        }
+
+        /* 转化率图表特殊高度 */
+        .chart-wrapper-small.rate-chart {
+            height: 300px;
+        }
+
+        .special-chart {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 28px;
+            border-radius: 18px;
+            border: 2px solid #e9ecef;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            position: relative;
+            margin-bottom: 35px;
+        }
+
+        .special-chart::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 18px 18px 0 0;
+        }
+
+        /* 图例样式优化 */
+        .chart-container .chartjs-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 0;
+            margin: 0;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .chart-container .chartjs-legend li {
+            display: inline-flex;
+            align-items: center;
+            margin: 4px 8px;
+            padding: 4px 8px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .chart-container .chartjs-legend li:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .chart-container .chartjs-legend li.hidden {
+            opacity: 0.4;
+            background: #f8f9fa;
+        }
+
+        .chart-container .chartjs-legend li span {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 6px;
+            border: 2px solid transparent;
+        }
+
+        /* 悬浮信息框样式 */
+        .hover-info {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            pointer-events: none;
+            z-index: 10000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            max-width: 250px;
+            line-height: 1.4;
+        }
+
+        .hover-info .month {
+            color: #4fc3f7;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .hover-info .data {
+            display: flex;
+            justify-content: space-between;
+            margin: 2px 0;
+        }
+
+        .hover-info .label {
+            color: #b0bec5;
+        }
+
+        .hover-info .value {
+            color: #ffffff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>门店业务指标走势分析系统</h1>
+            <p>2024年6月 - 2025年10月 数据可视化分析</p>
+        </div>
+
+        <div class="store-selector">
+            <div class="store-tabs">
+                <button class="store-tab" onclick="switchStore('平安', this)">平安店</button>
+                <button class="store-tab active" onclick="switchStore('侨城', this)">侨城店</button>
+                <button class="store-tab" onclick="switchStore('双玺', this)">双玺店</button>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- 图表导航 -->
+            <div class="chart-navigation-trigger" id="chartNavigationTrigger" title="图表导航">
+                📊
+            </div>
+
+            <div class="chart-navigation" id="chartNavigation">
+                <div class="navigation-header">
+                    <h4>📊 图表导航</h4>
+                </div>
+                <div id="navigationList">
+                    <!-- 动态生成导航项 -->
+                </div>
+            </div>
+
+
+            <!-- 图表网格 -->
+            <div class="charts-grid" id="chartsGrid">
+                <!-- 动态生成图表 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 门店原始数据
+        const storeData = `门店,年份,月份,总营收,确认收入,总客流,老客,A类数量,A类转化数,A类转化分母,A类转化率,A类美团点评,A类路过,A类老带新,A类其他,B类数量,B类转化数,B类转化分母,B类转化率,C类数量,C类转化数,C类转化分母,C类转化率,D类数量,D类转化数,D类转化分母,D类转化率,总有效服务时长,人均服务时长,打鱼邀约,主动上门
+平安,2024,6,180393,229957.52,287,182,105,7,93,7.53,47,46,12,0,24,5,24,20.83,47,12,42,28.57,111,2,102,1.96,398.92,1.39,0,182
+平安,2024,7,188907,231999.16,270,180,90,6,77,7.79,44,32,13,1,27,7,27,25.93,40,9,37,24.32,113,1,108,0.93,389.01,1.44,5,175
+平安,2024,8,314067,246841,269,197,72,8,54,14.81,28,22,18,4,20,8,21,38.1,48,21,46,45.65,129,5,122,4.1,418.75,1.56,61,136
+平安,2024,9,254711.3,224437.85,241,159,82,6,66,9.09,28,38,16,0,15,4,16,25,38,16,38,42.11,106,8,101,7.92,367.08,1.52,60,99
+平安,2024,10,199351,207426.5,228,156,72,9,56,16.07,35,21,16,0,12,4,12,33.33,36,14,36,38.89,108,0,99,0,341.5,1.5,56,100
+平安,2024,11,353030,173567.8,199,152,47,4,33,12.12,11,18,14,4,10,4,11,36.36,31,12,37,32.43,111,32,112,28.57,282.75,1.42,39,113
+平安,2024,12,195628,247758.73,252,183,69,5,49,10.2,22,25,21,1,7,4,8,50,25,12,22,54.55,151,7,133,5.26,376.5,1.49,73,110
+平安,2025,1,249801,257916.6,249,172,77,5,64,7.81,38,26,13,0,9,6,10,60,35,8,30,26.67,128,3,119,2.52,363,1.46,60,112
+平安,2025,2,145564,166363.35,197,145,52,1,41,2.44,13,27,11,0,6,2,7,28.57,36,13,36,36.11,103,4,94,4.26,281,1.43,45,100
+平安,2025,3,163185.8,208588.8,259,192,67,2,50,4,15,33,18,1,22,7,23,30.43,28,7,28,25,142,3,132,2.27,354,1.37,87,105
+平安,2025,4,110344,187065.5,225,165,60,1,45,2.22,27,17,16,0,11,1,11,9.09,33,5,32,15.62,121,2,107,1.87,317.08,1.41,87,78
+平安,2025,5,224328.5,176459.86,218,137,81,7,66,10.61,29,37,15,0,11,5,12,41.67,29,15,31,48.39,97,10,90,11.11,304.5,1.4,51,86
+平安,2025,6,171417,195897.71,248,150,98,7,92,7.61,33,57,7,1,10,7,10,70,28,5,23,21.74,112,3,103,2.91,328,1.32,46,104
+平安,2025,7,160793,164630.62,207,143,64,14,58,24.14,24,30,6,4,4,2,4,50,27,9,25,36,112,5,104,4.81,299.5,1.45,48,95
+平安,2025,8,232340,192993.76,258,181,77,8,64,12.5,23,36,13,5,17,7,18,38.89,26,15,26,57.69,138,6,118,5.08,345.42,1.34,58,123
+平安,2025,9,180672,166100.92,211,151,60,8,45,17.78,23,21,16,0,12,2,12,16.67,24,6,21,28.57,115,7,111,6.31,285.25,1.35,64,87
+平安,2025,10,159471,172176.06,209,161,48,2,43,4.65,20,18,7,2,20,4,20,20,27,14,26,53.85,114,2,103,1.94,289,1.38,66,95
+侨城,2024,6,169890.8,133466.3,159,119,40,7,29,24.14,19,8,12,1,9,3,9,33.33,25,13,25,52,85,1,73,1.37,235.34,1.48,0,119
+侨城,2024,7,102113,104448.75,122,95,27,2,20,10,13,3,7,4,8,5,9,55.56,13,5,12,41.67,74,0,70,0,181,1.48,0,95
+侨城,2024,8,145687.6,136204.11,160,133,27,3,20,15,19,1,7,0,9,2,9,22.22,29,8,24,33.33,95,6,82,7.32,235.33,1.47,51,82
+侨城,2024,9,158498,123386.41,131,102,29,4,15,26.67,11,2,14,2,9,4,9,44.44,18,11,14,78.57,75,2,67,2.99,198.92,1.52,30,72
+侨城,2024,10,89802.1,106259.87,109,89,20,4,17,23.53,14,2,4,0,5,2,5,40,16,5,15,33.33,68,3,65,4.62,179.77,1.65,44,45
+侨城,2024,11,222469,119253.9,136,109,27,3,21,14.29,17,2,7,1,5,1,6,16.67,22,14,23,60.87,82,9,80,11.25,198,1.46,25,84
+侨城,2024,12,124434,148569.99,150,119,31,2,18,11.11,11,6,14,0,8,2,8,25,6,3,6,50,105,6,95,6.32,225.33,1.5,41,78
+侨城,2025,1,186540,176896.82,131,113,18,0,11,0,10,1,7,0,6,1,6,16.67,4,3,4,75,103,6,93,6.45,209,1.6,55,58
+侨城,2025,2,101598,95208,121,91,30,2,23,8.7,16,7,7,0,2,1,2,50,12,3,11,27.27,77,4,67,5.97,165.25,1.37,54,37
+侨城,2025,3,96334.8,120439.74,141,102,39,2,29,6.9,22,5,11,1,1,0,1,0,18,9,18,50,83,2,75,2.67,195.58,1.39,56,46
+侨城,2025,4,104971,149778,178,148,30,2,19,10.53,14,2,12,2,5,2,5,40,22,7,19,36.84,121,1,102,0.98,257,1.44,74,74
+侨城,2025,5,184716,153015.97,183,145,38,9,24,37.5,19,4,15,0,3,1,3,33.33,17,7,17,41.18,125,9,112,8.04,285.83,1.56,78,67
+侨城,2025,6,182115,131117.05,160,128,32,1,17,5.88,8,9,15,0,8,6,9,66.67,18,8,17,47.06,102,6,92,6.52,234.25,1.46,66,62
+侨城,2025,7,156814,137025.66,159,124,35,6,25,24,18,6,10,1,2,0,2,0,18,7,15,46.67,104,6,92,6.52,242.5,1.53,60,64
+侨城,2025,8,155187.6,155128.33,181,144,37,2,23,8.7,11,11,14,1,4,2,4,50,21,12,21,57.14,119,4,108,3.7,269.5,1.49,67,77
+侨城,2025,9,158824.4,136634.14,173,146,27,5,23,21.74,13,9,5,0,6,3,6,50,15,5,13,38.46,125,9,115,7.83,246.83,1.43,62,84
+侨城,2025,10,141240.2,129073.71,166,135,31,1,21,4.76,10,7,10,4,8,4,8,50,18,9,17,52.94,109,5,102,4.9,244.24,1.47,36,99
+双玺,2024,6,98969,127417.33,124,108,16,2,10,20,5,1,6,4,4,2,4,50,20,9,18,50,84,3,82,3.66,204.5,1.65,0,108
+双玺,2024,7,119792.4,130163.6,121,104,17,1,9,11.11,9,0,8,0,6,1,6,16.67,24,11,23,47.83,74,3,68,4.41,198.01,1.64,0,104
+双玺,2024,8,155487,140415.98,140,126,14,4,8,50,8,0,6,0,2,1,2,50,23,12,20,60,101,6,96,6.25,232.42,1.66,42,84
+双玺,2024,9,189761,136369.99,136,113,23,3,15,20,9,4,9,1,4,2,4,50,23,14,22,63.64,86,8,82,9.76,222.92,1.64,40,73
+双玺,2024,10,167997,138437.18,149,133,16,2,10,20,6,1,7,2,6,3,6,50,12,4,11,36.36,115,8,106,7.55,239.58,1.61,60,73
+双玺,2024,11,227946.8,129672.85,142,131,11,2,6,33.33,2,2,5,2,2,1,2,50,18,8,17,47.06,111,14,103,13.59,208.75,1.47,58,73
+双玺,2024,12,227661,188549.04,187,163,24,4,15,26.67,15,0,9,0,3,3,3,100,19,11,18,61.11,141,9,134,6.72,277.18,1.48,75,88
+双玺,2025,1,169161.8,211218.82,163,142,21,2,8,25,4,3,14,0,2,1,2,50,14,7,13,53.85,126,4,110,3.64,265.75,1.63,94,48
+双玺,2025,2,115015.8,142807.81,153,135,18,1,15,6.67,13,2,3,0,0,0,0,0,10,6,10,60,125,2,107,1.87,241,1.58,66,69
+双玺,2025,3,110268,153596.99,153,133,20,6,13,46.15,12,1,7,0,8,1,8,12.5,17,11,17,64.71,108,1,103,0.97,252.75,1.65,68,65
+双玺,2025,4,90469,148513.94,146,130,16,2,12,16.67,11,0,4,1,2,0,2,0,15,4,12,33.33,113,4,103,3.88,243.83,1.67,72,58
+双玺,2025,5,172999,155684.7,162,140,22,7,13,53.85,9,4,9,0,3,3,4,75,20,5,15,33.33,117,7,103,6.8,257.25,1.59,80,60
+双玺,2025,6,134828,126725.72,142,125,17,3,9,33.33,8,1,8,0,4,1,4,25,14,8,14,57.14,107,5,101,4.95,219,1.54,58,67
+双玺,2025,7,162218,145744.34,162,131,31,6,23,26.09,21,2,8,0,3,1,3,33.33,12,6,10,60,116,4,106,3.77,258.75,1.6,56,75
+双玺,2025,8,168787.8,166903.38,180,165,15,3,8,37.5,4,3,8,0,2,2,2,100,22,7,19,36.84,141,7,131,5.34,281.5,1.56,91,74
+双玺,2025,9,112111,145032.65,163,146,17,3,7,42.86,5,1,10,1,5,4,5,80,16,11,16,68.75,125,2,115,1.74,257.25,1.58,83,63
+双玺,2025,10,154352,158508.12,171,146,25,4,15,26.67,10,5,10,0,3,0,3,0,22,7,20,35,121,9,110,8.18,267.08,1.56,63,83`;
+
+        let charts = {};
+        let parsedData = [];
+        let currentStore = '侨城';
+
+        // 工具函数 - 移到前面以避免函数未定义错误
+        function parseValue(value, isRate = false) {
+            if (value === '' || value === null || value === undefined) return 0;
+            const parsed = parseFloat(value);
+            if (isNaN(parsed)) return 0;
+            return parsed;
+        }
+
+        function formatValue(value, scale = 1) {
+            if (scale === 10000) {
+                return (value / scale).toFixed(1);
+            }
+            // 对于人均服务时长等小数值，保留一位小数
+            if (value < 10 && value % 1 !== 0) {
+                return value.toFixed(1);
+            }
+            // 对于整数，确保返回整数格式，避免浮点数精度问题
+            if (Number.isInteger(value) || (scale === 1 && Math.abs(value - Math.round(value)) < 0.000001)) {
+                return Math.round(value);
+            }
+            // 其他情况保留合理小数位
+            if (scale === 1) {
+                return value.toFixed(1);
+            }
+            return Math.round(value);
+        }
+
+        // 指标配置 - 排除转化类，因为要特殊处理
+        const indicators = [
+            { key: '总营收', label: '总营收', unit: '万', scale: 10000 },
+            { key: '确认收入', label: '确认收入', unit: '万', scale: 10000 },
+            { key: '总客流', label: '总客流', unit: '人', scale: 1 },
+            { key: '老客', label: '老客数量', unit: '人', scale: 1 },
+            { key: '总有效服务时长', label: '总有效服务时长', unit: '小时', scale: 1 },
+            { key: '人均服务时长', label: '客均护理时长', unit: '小时', scale: 1 },
+            { key: '打鱼邀约', label: '打鱼邀约', unit: '人', scale: 1 },
+            { key: '主动上门', label: '主动上门', unit: '人', scale: 1 }
+        ];
+
+    
+        // 转化类指标配置
+        const conversionIndicators = [
+            { type: 'A', numKey: 'A类转化数', denomKey: 'A类转化分母', rateKey: 'A类转化率', color: '#FF6384' },
+            { type: 'B', numKey: 'B类转化数', denomKey: 'B类转化分母', rateKey: 'B类转化率', color: '#36A2EB' },
+            { type: 'C', numKey: 'C类转化数', denomKey: 'C类转化分母', rateKey: 'C类转化率', color: '#FFCE56' },
+            { type: 'D', numKey: 'D类转化数', denomKey: 'D类转化分母', rateKey: 'D类转化率', color: '#4BC0C0' }
+        ];
+
+        // 老客分析指标
+        const customerTypeIndicators = [
+            { key: '老客', label: '老客', color: '#FF6384' },
+            { key: 'B类数量', label: 'B类', color: '#36A2EB' },
+            { key: 'C类数量', label: 'C类', color: '#FFCE56' },
+            { key: 'D类数量', label: 'D类', color: '#4BC0C0' }
+        ];
+
+        // A类四合一指标
+        const aClassIndicators = [
+            { key: 'A类数量', label: '新客总数', color: '#FF6384' },
+            { key: 'A类美团点评', label: '美团点评', color: '#36A2EB' },
+            { key: 'A类路过', label: '路过', color: '#FFCE56' },
+            { key: 'A类老带新', label: '老带新', color: '#4BC0C0' },
+            { key: 'A类其他', label: '其他', color: '#9966FF' }
+        ];
+
+        // 初始化
+        function init() {
+            // 注册DataLabels插件
+            Chart.register(ChartDataLabels);
+
+                        parsedData = parseData();
+            updateStoreData('侨城');
+        }
+
+        // 解析数据
+        function parseData() {
+            const lines = storeData.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const record = {};
+                headers.forEach((header, index) => {
+                    record[header] = values[index];
+                });
+                data.push(record);
+            }
+
+            return data;
+        }
+
+        // 切换门店
+        function switchStore(store, element) {
+            currentStore = store;
+
+            // 更新标签状态
+            document.querySelectorAll('.store-tab').forEach(tab => tab.classList.remove('active'));
+            element.classList.add('active');
+
+            updateStoreData(store);
+        }
+
+        
+      // 更新门店数据
+        function updateStoreData(store) {
+            let storeData = parsedData.filter(item => item['门店'] === store);
+
+            // 移除打鱼数据的24年6-7月（打鱼邀约为0的月份）
+            storeData = storeData.filter(item => {
+                const year = parseInt(item['年份']);
+                const month = parseInt(item['月份']);
+                const fishInvite = parseValue(item['打鱼邀约']);
+                return !(year === 2024 && month <= 7 && fishInvite === 0);
+            });
+
+            // 更新图表
+            updateAllCharts(storeData);
+        }
+
+
+        // 更新所有图表
+        function updateAllCharts(storeData) {
+            const container = document.getElementById('chartsGrid');
+            container.innerHTML = '';
+
+            // 清除之前的图表
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            charts = {};
+
+            // 创建图表导航
+            createChartNavigation();
+
+            // 创建单个指标图表
+            indicators.forEach((indicator, index) => {
+                createIndicatorChart(container, storeData, indicator, `chart${index}`);
+
+                // 为营收和确认收入添加现金流表格
+                if (indicator.key === '总营收' || indicator.key === '确认收入') {
+                    // 获取对应的平衡点
+                    const storeName = storeData.length > 0 ? storeData[0]['门店'] : currentStore;
+                    let balancePoint = 0;
+                    if (storeName === '平安') {
+                        balancePoint = 215000;
+                    } else if (storeName === '侨城' || storeName === '双玺') {
+                        balancePoint = 140000;
+                    }
+
+                    // 创建现金流表格（现在包含图表）
+                    createCashFlowTable(container, storeData, indicator, balancePoint);
+                }
+            });
+
+            // 创建转化类指标图表
+            conversionIndicators.forEach((indicator, index) => {
+                createConversionChart(container, storeData, indicator, `conversion${index}`);
+            });
+
+            // 创建组合指标图表
+            createCustomerTypeChart(container, storeData);
+            createAClassCombinedChart(container, storeData);
+        }
+
+        // 创建图表导航
+        function createChartNavigation() {
+            const navContainer = document.getElementById('navigationList');
+            navContainer.innerHTML = '';
+
+            // 基础指标导航
+            const basicGroup = document.createElement('div');
+            basicGroup.className = 'nav-group';
+
+            const basicTitle = document.createElement('div');
+            basicTitle.className = 'nav-group-title';
+            basicTitle.textContent = '基础指标';
+            basicGroup.appendChild(basicTitle);
+
+            indicators.forEach((indicator, index) => {
+                const navItem = document.createElement('a');
+                navItem.className = 'nav-item';
+                navItem.href = '#chart' + index;
+                navItem.textContent = indicator.label;
+                navItem.onclick = function(e) {
+                    e.preventDefault();
+                    scrollToChart('chart' + index);
+                };
+                basicGroup.appendChild(navItem);
+            });
+
+            navContainer.appendChild(basicGroup);
+
+            // 转化分析导航
+            const conversionGroup = document.createElement('div');
+            conversionGroup.className = 'nav-group';
+
+            const conversionTitle = document.createElement('div');
+            conversionTitle.className = 'nav-group-title';
+            conversionTitle.textContent = '转化分析';
+            conversionGroup.appendChild(conversionTitle);
+
+            conversionIndicators.forEach((indicator, index) => {
+                const navItem = document.createElement('a');
+                navItem.className = 'nav-item';
+                navItem.href = '#conversion' + index;
+                navItem.textContent = indicator.type + '类转化分析';
+                navItem.onclick = function(e) {
+                    e.preventDefault();
+                    scrollToChart('conversion' + index);
+                };
+                conversionGroup.appendChild(navItem);
+            });
+
+            navContainer.appendChild(conversionGroup);
+
+            // 组合指标导航
+            const combinedGroup = document.createElement('div');
+            combinedGroup.className = 'nav-group';
+
+            const combinedTitle = document.createElement('div');
+            combinedTitle.className = 'nav-group-title';
+            combinedTitle.textContent = '组合分析';
+            combinedGroup.appendChild(combinedTitle);
+
+            const customerTypeNav = document.createElement('a');
+            customerTypeNav.className = 'nav-item';
+            customerTypeNav.href = '#customerTypeChart';
+            customerTypeNav.textContent = '老客分析';
+            customerTypeNav.onclick = function(e) {
+                e.preventDefault();
+                scrollToChart('customerTypeChart');
+            };
+            combinedGroup.appendChild(customerTypeNav);
+
+            const newCustomerNav = document.createElement('a');
+            newCustomerNav.className = 'nav-item';
+            newCustomerNav.href = '#aClassCombinedChart';
+            newCustomerNav.textContent = '新客分析';
+            newCustomerNav.onclick = function(e) {
+                e.preventDefault();
+                scrollToChart('aClassCombinedChart');
+            };
+            combinedGroup.appendChild(newCustomerNav);
+
+            navContainer.appendChild(combinedGroup);
+        }
+
+        // 滚动到指定图表
+        function scrollToChart(chartId) {
+            // 移除所有活跃状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // 添加活跃状态
+            const activeItem = document.querySelector(`[href="#${chartId}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+
+            // 滚动到图表
+            let targetElement;
+
+            // 对于转化分析，先查找子图表，再查找主图表
+            if (chartId.includes('conversion')) {
+                targetElement = document.getElementById(chartId + '_conversion') ||
+                              document.getElementById(chartId + '_rate') ||
+                              document.getElementById(chartId);
+            } else {
+                targetElement = document.getElementById(chartId);
+            }
+
+            if (targetElement) {
+                targetElement.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+
+                // 添加高亮效果 - 对于转化分析和组合分析，要高亮整个特殊图表容器
+                let chartContainer;
+                if (chartId.includes('conversion') || chartId === 'customerTypeChart' || chartId === 'aClassCombinedChart') {
+                    chartContainer = targetElement.closest('.special-chart');
+                } else {
+                    chartContainer = targetElement.closest('.chart-container');
+                }
+
+                if (chartContainer) {
+                    chartContainer.style.transition = 'transform 0.3s ease';
+                    chartContainer.style.transform = 'scale(1.02)';
+                    setTimeout(() => {
+                        chartContainer.style.transform = 'scale(1)';
+                    }, 500);
+                }
+            }
+        }
+
+        // 创建老客分析图表
+        function createCustomerTypeChart(container, storeData) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container special-chart';
+
+            const labels = storeData.map(item => `${item['年份']}-${item['月份'].padStart(2, '0')}`);
+
+            chartContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">老客分析</div>
+                        <div class="chart-subtitle">老客及各类客户数量走势</div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="customerTypeChart"></canvas>
+                </div>
+            `;
+
+            container.appendChild(chartContainer);
+
+            const ctx = document.getElementById('customerTypeChart').getContext('2d');
+
+            // 参考基础指标的处理方式，每个数据集独立处理
+            const datasets = [];
+
+            customerTypeIndicators.forEach((indicator, index) => {
+                const values = storeData.map(item => parseValue(item[indicator.key]));
+                const borderColor = indicator.color;
+                const backgroundColor = indicator.color + '20';
+
+                datasets.push({
+                    label: indicator.label,
+                    data: values,
+                    borderColor: borderColor,
+                    backgroundColor: backgroundColor,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: borderColor,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    tension: 0.2,
+                    fill: false
+                });
+            });
+
+            charts.customerTypeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true, // 启用图例，让用户可以控制显示/隐藏
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                boxWidth: 12,
+                                padding: 15,
+                                // 自定义图例生成，只显示主要数据集
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        // 只返回前customerTypeIndicators.length个数据集（主要数据集）
+                                        return data.datasets.slice(0, customerTypeIndicators.length).map((dataset, i) => ({
+                                            text: dataset.label,
+                                            fillStyle: dataset.borderColor,
+                                            strokeStyle: dataset.borderColor,
+                                            lineWidth: dataset.borderWidth,
+                                            pointStyle: 'rectRounded',
+                                            hidden: !chart.isDatasetVisible(i),
+                                            datasetIndex: i
+                                        }));
+                                    }
+                                    return [];
+                                }
+                            },
+                            // 自定义点击处理
+                            onClick: function(e, legendItem, legend) {
+                                const index = legendItem.datasetIndex;
+                                const chart = legend.chart;
+                                const meta = chart.getDatasetMeta(index);
+
+                                // 切换主数据集的显示状态
+                                meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+
+                                // 同时切换相关的参考线数据集
+                                for (let i = customerTypeIndicators.length; i < chart.data.datasets.length; i++) {
+                                    const refMeta = chart.getDatasetMeta(i);
+                                    const refDataset = chart.data.datasets[i];
+                                    // 参考线跟随对应的主数据集的状态
+                                    if (refDataset.datasetIndexKey === 'reference' && refDataset.mainDatasetIndex === index) {
+                                        refMeta.hidden = meta.hidden;
+                                    }
+                                }
+
+                                chart.update();
+                            }
+                        },
+                        tooltip: {
+                            filter: function(tooltipItem) {
+                                // 只显示实际数据，隐藏参考线
+                                return tooltipItem.datasetIndex < customerTypeIndicators.length;
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    return `${datasetLabel}: ${formatValue(context.parsed.y, 1)}人`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: function(context) {
+                                // 只显示实际数据集的标签，不显示参考线
+                                return context.datasetIndex < customerTypeIndicators.length;
+                            },
+                            color: function(context) {
+                                return context.dataset.borderColor;
+                            },
+                            font: {
+                                size: 10,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: function(context) {
+                                return context.dataset.borderColor;
+                            },
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: 2,
+                            formatter: function(value) {
+                                return formatValue(value, 1) + '人';
+                            },
+                            align: function(context) {
+                                const chart = context.chart;
+                                const chartArea = chart.chartArea;
+                                const dataset = context.dataset;
+                                const dataIndex = context.dataIndex;
+                                const y = dataset.data[dataIndex];
+                                const scaledY = chart.scales.y.getPixelForValue(y);
+
+                                // 如果当前点在图表上半部分，标签显示在下方
+                                if (scaledY < chartArea.top + 50) {
+                                    return 'bottom';
+                                }
+
+                                // 检查相邻数据点的值，避免重叠
+                                const prevY = dataIndex > 0 ? dataset.data[dataIndex - 1] : null;
+                                const nextY = dataIndex < dataset.data.length - 1 ? dataset.data[dataIndex + 1] : null;
+
+                                // 如果与相邻点值接近，交替显示位置
+                                if (prevY && Math.abs(y - prevY) < (chart.scales.y.max - chart.scales.y.min) * 0.08) {
+                                    return dataIndex % 2 === 0 ? 'top' : 'bottom';
+                                }
+
+                                return 'top';
+                            },
+                            offset: 8
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '人数',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '人';
+                                },
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '变化速度 (%)',
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            // 设置合理的范围
+                            min: -100,
+                            max: 100
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 为每个数据集添加新的分析指标
+            customerTypeIndicators.forEach((indicator, index) => {
+                const values = storeData.map(item => parseValue(item[indicator.key]));
+                setTimeout(() => {
+                    addAnalysisIndicators(charts.customerTypeChart, values, 1, '人', storeData[0]['门店'], index);
+                }, 100);
+            });
+        }
+
+        // 创建单个指标图表
+        function createIndicatorChart(container, storeData, indicator, chartId) {
+            // 提取门店名称
+            const storeName = storeData.length > 0 ? storeData[0]['门店'] : currentStore;
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+
+            // 计算统计数据
+            const labels = storeData.map(item => `${item['年份']}-${item['月份'].padStart(2, '0')}`);
+
+            // 计算统计数据
+            const values = storeData.map(item => parseValue(item[indicator.key]));
+            const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+            const max = Math.max(...values);
+            const min = Math.min(...values);
+
+            // 为营收和确收图表使用不同颜色
+            const borderColor = indicator.key === '总营收' ? 'rgb(102, 126, 234)' :
+                             indicator.key === '确认收入' ? 'rgb(255, 99, 132)' : 'rgb(102, 126, 234)';
+            const backgroundColor = indicator.key === '总营收' ? 'rgba(102, 126, 234, 0.1)' :
+                                   indicator.key === '确认收入' ? 'rgba(255, 99, 132, 0.1)' : 'rgba(102, 126, 234, 0.1)';
+
+            chartContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">${indicator.label}</div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="${chartId}"></canvas>
+                </div>
+            `;
+
+            container.appendChild(chartContainer);
+
+            datasets = [{
+                label: indicator.label,
+                data: values,
+                borderColor: borderColor,
+                backgroundColor: backgroundColor,
+                borderWidth: 3,
+                pointRadius: 5,
+                pointBackgroundColor: borderColor,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                tension: 0.2,
+                fill: true
+            }];
+
+            // 创建图表 - 在两个分支之外定义ctx
+            const ctx = document.getElementById(chartId).getContext('2d');
+
+            charts[chartId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 0
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                        axis: 'x', // 启用X轴跟踪
+                    },
+                    // 添加XY跟踪线配置
+                    plugins: {
+                        legend: {
+                            display: false, // 所有图表都不显示图例
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            enabled: true, // 启用tooltip以支持十字线，但只显示必要信息
+                            intersect: false,
+                            mode: 'index',
+                            backgroundColor: 'rgba(0, 0, 0, 0)',
+                            titleColor: 'transparent',
+                            bodyColor: 'transparent',
+                            borderColor: 'transparent',
+                            displayColors: false,
+                            callbacks: {
+                                title: () => '',
+                                label: () => ''
+                            }
+                        },
+                        datalabels: {
+                            display: function(context) {
+                                // 显示所有数据标签，但使用更小的字体和更智能的位置
+                                return true;
+                            },
+                            color: '#333',
+                            font: {
+                                size: 9,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgba(0, 0, 0, 0.1)',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: 2,
+                            formatter: function(value) {
+                                // 实际数据点带单位
+                                return formatValue(value, indicator.scale) + indicator.unit;
+                            },
+                            align: function(context) {
+                                // 更智能的标签位置调整 - 防止重叠
+                                const chart = context.chart;
+                                const chartArea = chart.chartArea;
+                                const dataset = context.dataset;
+                                const dataIndex = context.dataIndex;
+                                const y = dataset.data[dataIndex];
+                                const scaledY = chart.scales.y.getPixelForValue(y);
+
+                                // 获取图表高度
+                                const chartHeight = chartArea.bottom - chartArea.top;
+
+                                // 特殊处理：当数据点较多时使用更紧凑的布局
+                                const isDenseChart = dataset.data.length > 10;
+
+                                if (isDenseChart) {
+                                    // 对于营收图表，使用更紧凑的布局
+                                    // 如果当前点在图表上半部分，标签显示在下方
+                                    if (scaledY < chartArea.top + chartHeight * 0.25) {
+                                        return 'bottom';
+                                    }
+                                    // 如果当前点在图表下半部分，标签显示在上方
+                                    if (scaledY > chartArea.bottom - chartHeight * 0.25) {
+                                        return 'top';
+                                    }
+                                } else {
+                                    // 其他图表使用标准逻辑
+                                    if (scaledY < chartArea.top + chartHeight * 0.3) {
+                                        return 'bottom';
+                                    }
+                                    if (scaledY > chartArea.bottom - chartHeight * 0.3) {
+                                        return 'top';
+                                    }
+                                }
+
+                                // 检查相邻数据点的值，避免重叠
+                                const prevY = dataIndex > 0 ? dataset.data[dataIndex - 1] : null;
+                                const nextY = dataIndex < dataset.data.length - 1 ? dataset.data[dataIndex + 1] : null;
+                                const threshold = isDenseChart ?
+                                    (chart.scales.y.max - chart.scales.y.min) * 0.05 : // 密集图表使用更小的阈值
+                                    (chart.scales.y.max - chart.scales.y.min) * 0.06;
+
+                                // 如果与相邻点值接近，交替显示位置
+                                if (prevY && Math.abs(y - prevY) < threshold) {
+                                    return dataIndex % 2 === 0 ? 'top' : 'bottom';
+                                }
+
+                                if (nextY && Math.abs(y - nextY) < threshold) {
+                                    return dataIndex % 2 === 0 ? 'bottom' : 'top';
+                                }
+
+                                // 特殊处理：如果数据点非常密集，使用更紧凑的布局
+                                if (isDenseChart && dataset.data.length > 10) {
+                                    // 使用更智能的交替逻辑
+                                    const density = dataset.data.length / (chartArea.width / 50); // 每50像素的密度
+                                    if (density > 0.5) {
+                                        return dataIndex % 3 === 0 ? 'top' : (dataIndex % 3 === 1 ? 'bottom' : 'top');
+                                    }
+                                }
+
+                                // 默认显示在上方
+                                return 'top';
+                            },
+                            offset: 1, // 减少偏移量，避免间距过大
+                            clamp: true, // 防止标签超出canvas边界
+                            // 旋转标签以节省空间
+                            rotation: function(context) {
+                                const chart = context.chart;
+                                const chartArea = chart.chartArea;
+                                const availableWidth = chartArea.width / context.dataset.data.length;
+
+                                // 如果可用宽度很小，稍微旋转标签
+                                if (availableWidth < 40) {
+                                    return -10; // 轻微旋转-10度
+                                }
+                                return 0; // 水平显示
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: indicator.key.includes('转化率'),
+                            // 对于人均服务时长，设置更紧凑的Y轴范围以突出趋势
+                            min: indicator.key === '人均服务时长' ? 1.2 : undefined,
+                            max: indicator.key === '人均服务时长' ? 1.7 : undefined,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatValue(value, indicator.scale) + indicator.unit;
+                                },
+                                // 对于人均服务时长，设置0.1的步长以显示细微变化
+                                stepSize: indicator.key === '人均服务时长' ? 0.1 : undefined,
+                                // 确保显示小数位
+                                precision: indicator.key === '人均服务时长' ? 1 : undefined
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '变化速度 (%)',
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            // 设置合理的范围
+                            min: -100,
+                            max: 100
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 添加新的分析指标（3个月移动平均和变化速度）
+            setTimeout(() => {
+                const values = storeData.map(item => parseValue(item[indicator.key]));
+                addAnalysisIndicators(charts[chartId], values, indicator.scale, indicator.unit, storeName);
+
+                // 为营收和确收图表添加hover事件监听和十字线
+                if (indicator.key === '总营收' || indicator.key === '确认收入') {
+                    const chart = charts[chartId];
+                    let crosshairCanvas = null;
+
+                    // 创建十字线画布
+                    function createCrosshairCanvas() {
+                        crosshairCanvas = document.createElement('canvas');
+                        crosshairCanvas.style.position = 'absolute';
+                        crosshairCanvas.style.top = '0';
+                        crosshairCanvas.style.left = '0';
+                        crosshairCanvas.style.pointerEvents = 'none';
+                        crosshairCanvas.style.zIndex = '1000';
+
+                        const canvasRect = chart.canvas.getBoundingClientRect();
+                        crosshairCanvas.width = canvasRect.width;
+                        crosshairCanvas.height = canvasRect.height;
+
+                        chart.canvas.parentElement.style.position = 'relative';
+                        chart.canvas.parentElement.appendChild(crosshairCanvas);
+                    }
+
+                    // 绘制十字线
+                    function drawCrosshair(mouseX, mouseY) {
+                        if (!crosshairCanvas) return;
+
+                        const ctx = crosshairCanvas.getContext('2d');
+                        const canvasRect = chart.canvas.getBoundingClientRect();
+
+                        // 清除画布
+                        ctx.clearRect(0, 0, crosshairCanvas.width, crosshairCanvas.height);
+
+                        // 获取图表区域
+                        const chartArea = chart.chartArea;
+                        const scaleX = crosshairCanvas.width / (canvasRect.width);
+                        const scaleY = crosshairCanvas.height / (canvasRect.height);
+
+                        const chartLeft = chartArea.left * scaleX;
+                        const chartRight = chartArea.right * scaleX;
+                        const chartTop = chartArea.top * scaleY;
+                        const chartBottom = chartArea.bottom * scaleY;
+
+                        ctx.save();
+                        ctx.strokeStyle = 'rgba(128, 128, 128, 0.9)'; // 深灰色
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 4]);
+
+                        // 绘制垂直线
+                        ctx.beginPath();
+                        ctx.moveTo(mouseX, chartTop);
+                        ctx.lineTo(mouseX, chartBottom);
+                        ctx.stroke();
+
+                        // 绘制水平线
+                        ctx.beginPath();
+                        ctx.moveTo(chartLeft, mouseY);
+                        ctx.lineTo(chartRight, mouseY);
+                        ctx.stroke();
+
+                        ctx.restore();
+                    }
+
+                    // 清除十字线
+                    function clearCrosshair() {
+                        if (crosshairCanvas) {
+                            const ctx = crosshairCanvas.getContext('2d');
+                            ctx.clearRect(0, 0, crosshairCanvas.width, crosshairCanvas.height);
+                        }
+                    }
+
+                    // 延迟创建十字线画布，确保图表已完全渲染
+                    setTimeout(() => {
+                        createCrosshairCanvas();
+                    }, 200);
+
+                    // 鼠标进入事件
+                    chart.canvas.addEventListener('mousemove', function(event) {
+                        const rect = chart.canvas.getBoundingClientRect();
+                        const x = event.clientX - rect.left;
+                        const y = event.clientY - rect.top;
+
+                        const canvasPosition = Chart.helpers.getRelativePosition(event, chart);
+                        const dataX = chart.scales.x.getValueForPixel(canvasPosition.x);
+                        const dataIndex = Math.round(dataX);
+
+                        // 绘制十字线
+                        drawCrosshair(x, y);
+
+                        if (dataIndex >= 0 && dataIndex < storeData.length) {
+                            // 更新对应的现金流表格
+                            updateCashFlowTable(storeData, indicator, dataIndex);
+
+                            // 显示悬浮信息框
+                            showHoverInfo(event, storeData, dataIndex, indicator);
+                        }
+                    });
+
+                    // 鼠标离开事件 - 恢复默认显示
+                    chart.canvas.addEventListener('mouseleave', function() {
+                        // 清除十字线
+                        clearCrosshair();
+
+                        // 恢复默认的现金流表格（最新月份）
+                        setTimeout(() => {
+                            const latestIndex = storeData.length - 1;
+                            updateCashFlowTable(storeData, indicator, latestIndex);
+                        }, 100); // 稍微延迟，避免闪烁
+
+                        // 隐藏悬浮信息框
+                        hideHoverInfo();
+                    });
+                }
+            }, 150);
+        }
+
+        // 转化率目标值配置
+        function getTargetValues(conversionType) {
+            const targets = {
+                'A': { pass: 20, excellent: 30 },
+                'B': { pass: 50, excellent: 80 },
+                'C': { pass: 50, excellent: 80 }, // 与B类相同
+                'D': { pass: null, excellent: null } // D类不显示目标线
+            };
+            return targets[conversionType] || { pass: null, excellent: null };
+        }
+
+        // 创建转化类指标图表
+        function createConversionChart(container, storeData, indicator, chartId) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container special-chart';
+
+            const labels = storeData.map(item => `${item['年份']}-${item['月份'].padStart(2, '0')}`);
+            const denomData = storeData.map(item => parseValue(item[indicator.denomKey])); // 转化分母
+            const numData = storeData.map(item => parseValue(item[indicator.numKey]));     // 转化数
+            const rateData = storeData.map(item => parseValue(item[indicator.rateKey]));     // 转化率
+
+            // 计算转化率的统计
+            const avgRate = rateData.reduce((sum, val) => sum + val, 0) / rateData.length;
+            const maxRate = Math.max(...rateData);
+            const minRate = Math.min(...rateData);
+
+            chartContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">${indicator.type}类转化分析</div>
+                        <div class="chart-subtitle">转化率平均: ${avgRate.toFixed(1)}% | 最大: ${maxRate.toFixed(1)}% | 最小: ${minRate.toFixed(1)}%</div>
+                    </div>
+                </div>
+
+                <!-- 上半部分：转化对比图表（柱状图+折线图） -->
+                <div class="chart-subsection">
+                    <div class="chart-wrapper-small">
+                        <canvas id="${chartId}_conversion"></canvas>
+                    </div>
+                </div>
+
+                <!-- 下半部分：转化率趋势图表 -->
+                <div class="chart-subsection">
+                    <div class="chart-wrapper-small rate-chart">
+                        <canvas id="${chartId}_rate"></canvas>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(chartContainer);
+
+            // 创建上半部分图表：转化数（折线图）+ 转化分母（柱状图）
+            const ctxConversion = document.getElementById(`${chartId}_conversion`).getContext('2d');
+            charts[`${chartId}_conversion`] = new Chart(ctxConversion, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        // 转化分母 - 柱状图（底层）
+                        {
+                            label: '转化分母',
+                            data: denomData,
+                            backgroundColor: '#87CEEB', // 天蓝色
+                            borderColor: '#4682B4',      // 钢蓝色
+                            borderWidth: 1,
+                            order: 2,
+                            yAxisID: 'y'
+                        },
+                        // 转化数 - 折线图（顶层）
+                        {
+                            label: '转化数',
+                            data: numData,
+                            borderColor: indicator.color,
+                            backgroundColor: indicator.color + '20',
+                            borderWidth: 3,
+                            fill: false,
+                            type: 'line',
+                            tension: 0.3,
+                            pointRadius: 5,
+                            pointBackgroundColor: indicator.color,
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointHoverRadius: 7,
+                            order: 1,
+                            yAxisID: 'y1' // 使用右侧Y轴
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    if (context.datasetIndex === 0) {
+                                        return `转化分母: ${context.parsed.y}人`;
+                                    } else {
+                                        return [
+                                            `转化数: ${context.parsed.y}人`,
+                                            `转化率: ${rateData[dataIndex].toFixed(1)}%`
+                                        ];
+                                    }
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: function(context) {
+                                // 显示所有标签，包括0值，但会调整位置避免遮挡
+                                return true;
+                            },
+                            color: function(context) {
+                                // 转化分母用蓝色，转化数用彩色
+                                return context.datasetIndex === 0 ? '#4682B4' : indicator.color;
+                            },
+                            font: {
+                                size: 8,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: function(context) {
+                                return context.datasetIndex === 0 ? '#4682B4' : indicator.color;
+                            },
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: 2,
+                            formatter: function(value) {
+                                // 确保人数显示为整数，避免浮点数精度问题
+                                return Math.round(value) + '人';
+                            },
+                            anchor: 'end',
+                            align: function(context) {
+                                const dataIndex = context.dataIndex;
+                                const denomValue = denomData[dataIndex]; // 转化分母
+                                const numValue = numData[dataIndex];    // 转化数
+                                const currentDataset = context.dataset.data[dataIndex];
+
+                                // 计算数值接近程度（30%以内或绝对值差小于3人认为接近）
+                                const isClose = Math.abs(denomValue - numValue) / Math.max(denomValue, numValue) < 0.3 ||
+                                               Math.abs(denomValue - numValue) < 3;
+
+                                if (context.datasetIndex === 0) { // 转化分母（柱状图）
+                                    if (currentDataset === 0) {
+                                        return 'bottom'; // 0值显示在柱底，避免覆盖月份
+                                    } else {
+                                        return 'top'; // 非零值显示在柱顶
+                                    }
+                                } else { // 转化数（折线图）
+                                    if (currentDataset === 0) {
+                                        return 'bottom'; // 0值显示在折线下方
+                                    } else if (isClose) {
+                                        return 'bottom'; // 数值接近时显示在折线下方，避免重叠
+                                    } else {
+                                        return 'top'; // 数值不接近时正常显示在折线上方
+                                    }
+                                }
+                            },
+                            offset: function(context) {
+                                const dataIndex = context.dataIndex;
+                                const denomValue = denomData[dataIndex]; // 转化分母
+                                const numValue = numData[dataIndex];    // 转化数
+                                const currentDataset = context.dataset.data[dataIndex];
+
+                                // 计算数值接近程度（30%以内或绝对值差小于3人认为接近）
+                                const isClose = Math.abs(denomValue - numValue) / Math.max(denomValue, numValue) < 0.3 ||
+                                               Math.abs(denomValue - numValue) < 3;
+
+                                if (context.datasetIndex === 0) { // 转化分母
+                                    if (currentDataset === 0) {
+                                        return -3; // 0值显示在柱底下方，避免覆盖月份
+                                    } else {
+                                        return 2; // 非零值显示在柱顶上方一点
+                                    }
+                                } else { // 转化数
+                                    if (currentDataset === 0) {
+                                        return 8; // 0值显示在折线下方
+                                    } else if (isClose) {
+                                        return 10; // 数值接近时，在折线下方更远处，完全错开
+                                    } else {
+                                        return 5; // 数值不接近时，在折线上方正常距离
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: '转化分母（人）',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return Math.round(value) + '人';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            // 调整左侧Y轴范围，给数值留更多空间
+                            max: Math.max(...denomData) * 1.3
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '转化数（人）',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return Math.round(value) + '人';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            // 针对不同转化类型调整右侧Y轴范围
+                            max: function() {
+                                const numMax = Math.max(...numData);
+                                const denomMax = Math.max(...denomData);
+
+                                // 对于不同转化类型，设置不同的Y轴范围
+                                if (indicator.type === 'A') {
+                                    // A类：右侧Y轴范围固定为0-15
+                                    return 15;
+                                } else if (indicator.type === 'D') {
+                                    // D类：右侧Y轴范围固定为0-25，让分子趋势更明显
+                                    return 25;
+                                } else {
+                                    // B类和C类：保持原有逻辑
+                                    return Math.max(numMax, denomMax) * 1.2;
+                                }
+                            }()
+                        }
+                    }
+                }
+            });
+
+            // 创建下半部分图表：转化率趋势
+            const ctxRate = document.getElementById(`${chartId}_rate`).getContext('2d');
+
+            // 获取目标值
+            const targetValues = getTargetValues(indicator.type);
+
+            // 动态构建数据集
+            const datasets = [
+                {
+                    label: '转化率',
+                    data: rateData,
+                    borderColor: '#ff6b6b',
+                    backgroundColor: '#ff6b6b20',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#ff6b6b',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 7,
+                    order: 1
+                }
+            ];
+
+            // 只有当有目标值时才添加参考线
+            if (targetValues.excellent !== null && targetValues.excellent > 0) {
+                datasets.push({
+                    label: '优秀值',
+                    data: new Array(rateData.length).fill(targetValues.excellent),
+                    borderColor: '#27ae60',
+                    borderWidth: 2,
+                    borderDash: [8, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    hiddenInLegend: true, // 不在图例中显示
+                    order: 2,
+                    datalabels: {
+                        display: function(context) {
+                            return context.dataIndex === rateData.length - 1; // 只在最后一个点显示
+                        },
+                        align: 'left',
+                        anchor: 'center',
+                        offset: 8,
+                        color: '#27ae60',
+                        font: {
+                            size: 10,
+                            weight: 'bold'
+                        },
+                        formatter: function() {
+                            return `优秀: ${targetValues.excellent}%`;
+                        }
+                    }
+                });
+            }
+
+            if (targetValues.pass !== null && targetValues.pass > 0) {
+                datasets.push({
+                    label: '及格值',
+                    data: new Array(rateData.length).fill(targetValues.pass),
+                    borderColor: '#f39c12',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    hiddenInLegend: true, // 不在图例中显示
+                    order: 2,
+                    datalabels: {
+                        display: function(context) {
+                            return context.dataIndex === rateData.length - 1; // 只在最后一个点显示
+                        },
+                        align: 'left',
+                        anchor: 'center',
+                        offset: 8,
+                        color: '#f39c12',
+                        font: {
+                            size: 10,
+                            weight: 'bold'
+                        },
+                        formatter: function() {
+                            return `及格: ${targetValues.pass}%`;
+                        }
+                    }
+                });
+            }
+
+            charts[`${chartId}_rate`] = new Chart(ctxRate, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const dataIndex = context.dataIndex;
+                                    return [
+                                        `转化率: ${context.parsed.y.toFixed(1)}%`,
+                                        `转化数: ${numData[dataIndex]}人 / 分母: ${denomData[dataIndex]}人`
+                                    ];
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: true,
+                            color: '#333',
+                            font: {
+                                size: 9,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: '#ff6b6b',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: 2,
+                            formatter: function(value) {
+                                return value.toFixed(1) + '%';
+                            },
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 3
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '转化率 (%)',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            max: Math.max(targetValues.excellent, Math.max(...rateData)) * 1.2
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // 添加只有平均值的参考线
+        function addSimpleAverageLine(chart, values, color, label, datasetIndex) {
+            const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+
+            // 修复浮点数精度问题
+            const fixedAvg = (Math.abs(avg - Math.round(avg)) < 0.000001) ? Math.round(avg) : avg;
+
+            chart.data.datasets.push({
+                label: `${label}平均`,
+                data: new Array(values.length).fill(fixedAvg),
+                borderColor: color,
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false,
+                tension: 0,
+                hiddenInLegend: true, // 不在图例中显示
+                datalabels: {
+                    display: function(context) {
+                        return context.dataIndex === values.length - 1; // 只在最后一个点显示
+                    },
+                    align: 'left',
+                    anchor: 'center',
+                    offset: function(context) {
+                        // 智能调整偏移量，避免重叠
+                        const datasetIndex = context.datasetIndex;
+                        const baseOffset = 8;
+
+                        // 根据数据集数量和索引动态调整间距
+                        const smartSpacing = Math.max(12, Math.min(18, 8 + datasetIndex * 10));
+
+                        // 如果是多个数据集，减少间距避免过度分散
+                        return baseOffset + (datasetIndex * smartSpacing);
+                    },
+                    color: color,
+                    font: {
+                        size: 10,
+                        weight: 'bold'
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    borderColor: color,
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    padding: 2,
+                    formatter: function() {
+                        return `平均: ${fixedAvg}人`;
+                    }
+                }
+            });
+
+            chart.update();
+        }
+
+        // 为数据集添加参考线（只显示平均值）
+        // 添加参考线，使用数据集的颜色
+        function addReferenceLinesForDataset(chart, values, scale, unit, storeName, datasetCount, lineColor = '#27ae60') {
+            const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+
+            // 修复小数点显示问题，保留1位小数
+            const fixedAvg = Math.round(avg * 10) / 10;
+
+            chart.data.datasets.push({
+                label: '平均',
+                data: new Array(values.length).fill(fixedAvg),
+                borderColor: lineColor,
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false,
+                tension: 0,
+                hiddenInLegend: true, // 不在图例中显示
+                // 添加这个属性来隐藏tooltip
+                parsing: {
+                    yAxisKey: 'y'
+                },
+                // 隐藏在tooltip中
+                order: 99,
+                datalabels: {
+                    display: function(context) {
+                        return context.dataIndex === values.length - 1; // 只在最后一个点显示
+                    },
+                    align: 'left',
+                    anchor: 'center',
+                    offset: function(context) {
+                        // 智能调整偏移量，避免重叠
+                        const datasetIndex = context.datasetIndex;
+                        const baseOffset = 8;
+
+                        // 根据数据集数量和索引动态调整间距
+                        const smartSpacing = Math.max(12, Math.min(18, 8 + datasetIndex * 10));
+
+                        // 如果是多个数据集，减少间距避免过度分散
+                        return baseOffset + (datasetIndex * smartSpacing);
+                    },
+                    color: lineColor,
+                    font: {
+                        size: 10,
+                        weight: 'bold'
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: lineColor,
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    padding: 2,
+                    formatter: function() {
+                        return `平均: ${fixedAvg}人`;
+                    }
+                }
+            });
+
+            chart.update();
+        }
+
+        // 计算3个月移动平均值
+        function calculateMovingAverage(values, windowSize = 3) {
+            const result = [];
+            for (let i = 0; i < values.length; i++) {
+                if (i < windowSize - 1) {
+                    result.push(null); // 前几个月没有足够数据
+                } else {
+                    const sum = values.slice(i - windowSize + 1, i + 1).reduce((a, b) => a + b, 0);
+                    result.push(sum / windowSize);
+                }
+            }
+            return result;
+        }
+
+        // 计算变化速度（3个月移动平均的斜率）
+        function calculateChangeRate(values, windowSize = 3) {
+            const movingAvg = calculateMovingAverage(values, windowSize);
+            const result = [];
+
+            for (let i = 0; i < movingAvg.length; i++) {
+                if (i < windowSize || movingAvg[i] === null || movingAvg[i - windowSize] === null) {
+                    result.push(null);
+                } else {
+                    const change = movingAvg[i] - movingAvg[i - windowSize];
+                    const rate = (change / movingAvg[i - windowSize]) * 100;
+                    result.push(rate);
+                }
+            }
+            return result;
+        }
+
+        // 添加新的分析指标到图表
+        function addAnalysisIndicators(chart, values, scale, unit, storeName = null, mainDatasetIndex = null) {
+            // 获取图表标签，判断是否为营收或确收图表
+            const chartLabel = chart.data.datasets[0].label;
+            const isRevenueChart = chartLabel === '总营收' || chartLabel === '确认收入';
+
+            // 获取当前门店，设置盈亏平衡点
+            const currentStoreName = storeName || currentStore;
+            let breakevenPoint = 0;
+
+            if (chartLabel === '总营收' || chartLabel === '确认收入') {
+                if (currentStoreName === '平安') {
+                    breakevenPoint = 215000;
+                } else if (currentStoreName === '侨城' || currentStoreName === '双玺') {
+                    breakevenPoint = 140000;
+                }
+            }
+
+            // 计算3个月移动平均
+            const movingAvgValues = calculateMovingAverage(values, 3);
+
+            // 计算变化速度
+            const changeRateValues = calculateChangeRate(values, 3);
+
+            // 计算移动平均线的斜率百分比（相对于上月的百分比变化）
+            const movingAvgChangeRates = [];
+            for (let i = 1; i < movingAvgValues.length; i++) {
+                if (movingAvgValues[i-1] !== null && movingAvgValues[i] !== null && movingAvgValues[i-1] !== 0) {
+                    const changeRate = ((movingAvgValues[i] - movingAvgValues[i-1]) / movingAvgValues[i-1]) * 100;
+                    movingAvgChangeRates.push(changeRate);
+                } else {
+                    movingAvgChangeRates.push(null);
+                }
+            }
+            movingAvgChangeRates.unshift(null); // 第一个月没有变化率
+
+            // 智能标签偏移计算 - 避免重叠和间距过大
+            function calculateSmartOffset(context, baseOffset, labelType) {
+                const dataIndex = context.dataIndex;
+                const chart = context.chart;
+                const datasets = chart.data.datasets;
+
+                // 获取当前点的位置
+                const datasetIndex = context.datasetIndex;
+                const meta = chart.getDatasetMeta(datasetIndex);
+                if (!meta || !meta.data[dataIndex]) return baseOffset;
+
+                const point = meta.data[dataIndex];
+                const y = point.y;
+
+                // 计算动态偏移
+                let smartOffset = baseOffset;
+
+                if (labelType === 'movingAvg') {
+                    // 移动平均标签的智能偏移
+                    if (dataIndex > 0) {
+                        const prevValue = movingAvgValues[dataIndex - 1];
+                        const currValue = movingAvgValues[dataIndex];
+
+                        // 如果数值变化很大，适当调整间距
+                        if (prevValue !== null && currValue !== null) {
+                            const changePercent = Math.abs((currValue - prevValue) / prevValue);
+                            if (changePercent > 0.5) {
+                                // 变化很大时，保持基础偏移，避免过度调整
+                                smartOffset = baseOffset;
+                            } else if (changePercent < 0.05) {
+                                // 变化很小时，微调避免重叠
+                                smartOffset += 1;
+                            }
+                        }
+                    }
+
+                    // 检查是否与相邻标签重叠
+                    if (dataIndex > 0 && dataIndex < movingAvgValues.length - 1) {
+                        const prevPoint = meta.data[dataIndex - 1];
+                        const nextPoint = meta.data[dataIndex + 1];
+
+                        if (prevPoint && nextPoint) {
+                            const prevY = prevPoint.y;
+                            const nextY = nextPoint.y;
+                            const currentY = y;
+
+                            // 如果当前点夹在两个相邻点之间，减少偏移
+                            if ((currentY > prevY && currentY < nextY) || (currentY < prevY && currentY > nextY)) {
+                                if (Math.abs(currentY - prevY) < 15 || Math.abs(currentY - nextY) < 15) {
+                                    smartOffset = Math.abs(smartOffset) > 6 ? Math.sign(smartOffset) * 6 : smartOffset;
+                                }
+                            }
+                        }
+                    }
+
+                    // 限制最大偏移，避免间距过大
+                    if (Math.abs(smartOffset) > 15) {
+                        smartOffset = Math.sign(smartOffset) * 15;
+                    }
+
+                } else if (labelType === 'slope') {
+                    // 斜率标签的智能偏移 - 基于移动平均标签的位置
+                    smartOffset = 15; // 基础间距，比原来稍小
+
+                    // 根据数值大小微调，但限制范围
+                    const value = movingAvgValues[dataIndex];
+                    if (value !== null) {
+                        if (scale === 10000 && value > 150000) {
+                            smartOffset += 2; // 减少增量
+                        } else if (scale === 1 && value > 100) {
+                            smartOffset += 1;
+                        }
+                    }
+
+                    // 限制斜率标签的最大偏移
+                    if (Math.abs(smartOffset) > 18) {
+                        smartOffset = Math.sign(smartOffset) * 18;
+                    }
+                }
+
+                return smartOffset;
+            }
+
+            // 添加3个月移动平均线数值标签（第一行）
+            chart.data.datasets.push({
+                label: '3个月移动平均',
+                data: movingAvgValues,
+                borderColor: '#27ae60',
+                borderWidth: 2,
+                borderDash: [5, 5],
+                pointRadius: 0,
+                fill: false,
+                tension: 0,
+                hiddenInLegend: true,
+                datasetIndexKey: 'reference',
+                mainDatasetIndex: mainDatasetIndex,
+                datalabels: {
+                    display: function(context) {
+                        return movingAvgValues[context.dataIndex] !== null;
+                    },
+                    align: 'top',
+                    anchor: 'end',
+                    // 特殊处理：对于营收图表，使用更紧凑的锚点
+                    anchor: function(context) {
+                        // 简化判断：当数据点较多时使用更紧凑的布局
+                        if (movingAvgValues.length > 10) {
+                            return 'center'; // 对于密集的图表，使用中心锚点
+                        }
+                        return 'end';
+                    },
+                    offset: function(context) {
+                        return calculateSmartOffset(context, -8, 'movingAvg'); // 减少基础偏移
+                    },
+                    color: '#27ae60',
+                    font: {
+                        size: 9,
+                        weight: 'bold'
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: '#27ae60',
+                    borderWidth: 1,
+                    borderRadius: 3,
+                    padding: 2,
+                    formatter: function(value, context) {
+                        return `${formatValue(value, scale)}${unit}`;
+                    }
+                }
+            });
+
+            // 添加移动平均斜率标签（第二行，带颜色）
+            chart.data.datasets.push({
+                label: '移动平均斜率',
+                data: movingAvgValues,
+                borderColor: 'transparent',
+                pointRadius: 0,
+                fill: false,
+                tension: 0,
+                hiddenInLegend: true,
+                datasetIndexKey: 'reference',
+                mainDatasetIndex: mainDatasetIndex,
+                datalabels: {
+                    display: function(context) {
+                        const dataIndex = context.dataIndex;
+                        return movingAvgValues[dataIndex] !== null && movingAvgChangeRates[dataIndex] !== null;
+                    },
+                    align: 'bottom',
+                    anchor: 'end',
+                    // 特殊处理：对于营收图表，使用更紧凑的锚点
+                    anchor: function(context) {
+                        // 简化判断：当数据点较多时使用更紧凑的布局
+                        if (movingAvgValues.length > 10) {
+                            return 'center'; // 对于密集的图表，使用中心锚点
+                        }
+                        return 'end';
+                    },
+                    offset: function(context) {
+                        return calculateSmartOffset(context, 12, 'slope'); // 减少基础间距
+                    },
+                    color: function(context) {
+                        const dataIndex = context.dataIndex;
+                        const slopeRate = movingAvgChangeRates[dataIndex];
+                        return slopeRate > 0 ? '#e74c3c' : '#27ae60';
+                    },
+                    font: {
+                        size: 8,
+                        weight: 'bold'
+                    },
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderColor: function(context) {
+                        const dataIndex = context.dataIndex;
+                        const slopeRate = movingAvgChangeRates[dataIndex];
+                        return slopeRate > 0 ? '#e74c3c' : '#27ae60';
+                    },
+                    borderWidth: 1,
+                    borderRadius: 2,
+                    padding: 1,
+                    formatter: function(value, context) {
+                        const dataIndex = context.dataIndex;
+                        const slopeRate = movingAvgChangeRates[dataIndex];
+                        if (slopeRate !== null) {
+                            const arrow = slopeRate > 0 ? '↗' : '↘';
+                            return `${arrow} ${Math.abs(slopeRate).toFixed(1)}%`;
+                        }
+                        return '';
+                    }
+                }
+            });
+
+
+            // 计算移动平均线的斜率（趋势判断）
+            function calculateMovingAverageSlope(movingAvgValues) {
+                const slopes = [];
+                for (let i = 1; i < movingAvgValues.length; i++) {
+                    if (movingAvgValues[i] !== null && movingAvgValues[i-1] !== null) {
+                        // 斜率 = (当前值 - 前值) / 时间间隔（1个月）
+                        const slope = movingAvgValues[i] - movingAvgValues[i-1];
+                        slopes.push(slope);
+                    } else {
+                        slopes.push(0);
+                    }
+                }
+                slopes.unshift(0); // 第一个月斜率为0
+                return slopes;
+            }
+
+            // 计算移动平均斜率
+            const movingAvgSlopes = calculateMovingAverageSlope(movingAvgValues);
+
+            // 基于最新一个月的移动平均斜率判断趋势
+            const latestSlope = movingAvgSlopes[movingAvgSlopes.length - 1];
+            const prevSlope = movingAvgSlopes.length > 1 ? movingAvgSlopes[movingAvgSlopes.length - 2] : 0;
+
+            // 判断趋势（考虑斜率大小和方向变化）
+            let trend = '';
+            let trendColor = '';
+
+            if (latestSlope > 0) {
+                trend = '↗ 上升';
+                trendColor = '#27ae60';
+            } else if (latestSlope < 0) {
+                trend = '↘ 下降';
+                trendColor = '#e74c3c';
+            } else {
+                trend = '→ 平稳';
+                trendColor = '#f39c12';
+            }
+
+
+            // 根据图表类型决定是否添加盈亏平衡点线
+            if (isRevenueChart) {
+                const balanceLabel = chartLabel === '总营收' ? '收支平衡线' : '盈亏平衡线';
+                chart.data.datasets.push({
+                    label: '', // 空标签确保不会在图例中显示
+                    data: new Array(values.length).fill(breakevenPoint),
+                    borderColor: '#f39c12',
+                    borderWidth: 2,
+                    borderDash: [8, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    hiddenInLegend: true, // 不在图例中显示，但线条可见
+                    datalabels: {
+                        display: function(context) {
+                            return context.dataIndex === values.length - 1;
+                        },
+                        align: 'left',
+                        anchor: 'start',
+                        offset: 0,
+                        color: '#f39c12',
+                        font: {
+                            size: 9,
+                            weight: 'bold'
+                        },
+                        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                        borderRadius: 3,
+                        padding: 1,
+                        formatter: function() {
+                            return `${balanceLabel}: ${formatValue(breakevenPoint, scale)}${unit}`;
+                        }
+                    }
+                });
+            }
+
+            chart.update();
+        }
+
+        // 计算现金流指标
+        // 动态计算基于指定月份的现金流数据
+        function calculateDynamicCashFlow(storeData, indicatorKey, balancePoint, targetIndex) {
+            const result = {
+                monthly: [],
+                quarterly: [],
+                semiAnnual: [],
+                ninthMonths: [], // 添加9个月数据数组
+                annual: []
+            };
+
+            // 计算指定月份的现金流
+            result.monthly = storeData.map((item, index) => {
+                if (index === targetIndex) {
+                    const value = parseValue(item[indicatorKey]);
+                    return value - balancePoint;
+                }
+                return null;
+            });
+
+            // 计算基于指定月份的周期现金流
+            function calculatePeriodCashFlowFromTarget(periodMonths, targetIndex) {
+                const periodResult = [];
+                for (let i = 0; i < storeData.length; i++) {
+                    if (i === targetIndex && targetIndex >= periodMonths - 1) {
+                        // 从目标月份往前推periodMonths个月
+                        let revenueSum = 0;
+                        for (let j = targetIndex - periodMonths + 1; j <= targetIndex; j++) {
+                            revenueSum += parseValue(storeData[j][indicatorKey]);
+                        }
+                        // 近N个月现金流 = 近N个月总营收 - N×平衡线
+                        periodResult.push(revenueSum - (periodMonths * balancePoint));
+                    } else {
+                        periodResult.push(null);
+                    }
+                }
+                return periodResult;
+            }
+
+            result.quarterly = calculatePeriodCashFlowFromTarget(3, targetIndex);
+            result.semiAnnual = calculatePeriodCashFlowFromTarget(6, targetIndex);
+            result.ninthMonths = calculatePeriodCashFlowFromTarget(9, targetIndex); // 添加9个月计算
+            result.annual = calculatePeriodCashFlowFromTarget(12, targetIndex);
+
+            return result;
+        }
+
+        // 动态更新现金流表格
+        function updateCashFlowTable(storeData, indicator, targetIndex) {
+            const storeName = storeData.length > 0 ? storeData[0]['门店'] : currentStore;
+            let balancePoint = 0;
+            if (storeName === '平安') {
+                balancePoint = 215000;
+            } else if (storeName === '侨城' || storeName === '双玺') {
+                balancePoint = 140000;
+            }
+
+            // 计算基于目标月份的现金流
+            const cashFlow = calculateDynamicCashFlow(storeData, indicator.key, balancePoint, targetIndex);
+
+            // 更新表格
+            const tbody = document.getElementById(`cashflow-tbody-${indicator.key}`);
+            if (!tbody) return;
+
+            // 清空现有内容
+            tbody.innerHTML = '';
+
+            // 获取目标月份信息
+            const targetMonth = storeData[targetIndex];
+            const monthLabel = `${targetMonth['年份']}-${targetMonth['月份'].padStart(2, '0')}`;
+
+            const periods = [
+                { name: monthLabel, data: cashFlow.monthly, index: targetIndex },
+                { name: `近3个月(${monthLabel})`, data: cashFlow.quarterly, index: targetIndex },
+                { name: `近6个月(${monthLabel})`, data: cashFlow.semiAnnual, index: targetIndex },
+                { name: `近9个月(${monthLabel})`, data: cashFlow.ninthMonths, index: targetIndex }, // 修复9个月数据引用
+                { name: `近12个月(${monthLabel})`, data: cashFlow.annual, index: targetIndex }
+            ];
+
+            periods.forEach(period => {
+                if (period.data[period.index] !== null) {
+                    const value = period.data[period.index];
+                    const isPositive = value > 0;
+                    const status = isPositive ? '盈余' : '亏损';
+                    // 反转颜色：盈余用红色（警示），亏损用绿色
+                    const statusColor = isPositive ? '#e74c3c' : '#27ae60';
+                    const sign = isPositive ? '+' : '';
+
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid #e9ecef';
+                    row.innerHTML = `
+                        <td style="padding: 12px; font-weight: 500;">${period.name}</td>
+                        <td style="padding: 12px; text-align: right; font-weight: 600; color: ${statusColor};">
+                            ${sign}${formatValue(value / 10000, 1)}万
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor}40;">
+                                ${status}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                }
+            });
+
+            // 更新表格标题，添加当前悬浮月份提示
+            const tableTitle = document.querySelector(`#cashflow-table-${indicator.key} .chart-title`);
+            if (tableTitle) {
+                const originalTitle = indicator.key === '总营收' ? '现金流状态表' : '盈亏状态表';
+                tableTitle.innerHTML = `${originalTitle} <span style="color: #666; font-size: 12px; font-weight: normal;">(当前: ${monthLabel})</span>`;
+            }
+        }
+
+      // 显示悬浮信息框
+        function showHoverInfo(event, storeData, dataIndex, indicator) {
+            // 移除已存在的信息框
+            hideHoverInfo();
+
+            const hoverInfo = document.createElement('div');
+            hoverInfo.className = 'hover-info';
+            hoverInfo.id = 'hoverInfo';
+
+            const monthData = storeData[dataIndex];
+            const monthLabel = `${monthData['年份']}-${monthData['月份'].padStart(2, '0')}`;
+
+            // 计算现金流数据
+            const storeName = monthData['门店'];
+            let balancePoint = 0;
+            if (storeName === '平安') {
+                balancePoint = 215000;
+            } else if (storeName === '侨城' || storeName === '双玺') {
+                balancePoint = 140000;
+            }
+
+            if (indicator) {
+                // 计算基于目标月份的现金流数据
+                const cashFlow = calculateDynamicCashFlow(storeData, indicator.key, balancePoint, dataIndex);
+
+                let content = `
+                    <div class="month">📅 ${monthLabel}</div>
+                `;
+
+                // 添加该月的基础数据
+                const value = parseValue(monthData[indicator.key]);
+                const formattedValue = formatValue(value / indicator.scale, 1);
+                content += `
+                    <div class="data">
+                        <span class="label">${indicator.label}:</span>
+                        <span class="value">${formattedValue}${indicator.unit}</span>
+                    </div>
+                `;
+
+                // 添加分割线
+                content += `
+                    <div style="margin: 4px 0; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.3);"></div>
+                `;
+
+                // 显示各个周期的现金流数据
+                const periods = [
+                    { name: '当月', data: cashFlow.monthly, index: dataIndex },
+                    { name: '近3个月', data: cashFlow.quarterly, index: dataIndex },
+                    { name: '近6个月', data: cashFlow.semiAnnual, index: dataIndex },
+                    { name: '近9个月', data: cashFlow.ninthMonths, index: dataIndex },
+                    { name: '近12个月', data: cashFlow.annual, index: dataIndex }
+                ];
+
+                periods.forEach(period => {
+                    if (period.data[period.index] !== null) {
+                        const periodValue = period.data[period.index];
+                        const isPositive = periodValue > 0;
+                        const status = isPositive ? '盈余' : '亏损';
+                        const statusColor = isPositive ? '#e74c3c' : '#27ae60'; // 红色表示盈余，绿色表示亏损
+                        const sign = isPositive ? '+' : '';
+
+                        content += `
+                            <div class="data" style="font-size: 11px; margin: 1px 0;">
+                                <span class="label" style="font-size: 10px;">${period.name}:</span>
+                                <span class="value" style="color: ${statusColor}; font-size: 10px;">${sign}${formatValue(periodValue / 10000, 1)}万</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                hoverInfo.innerHTML = content;
+            } else {
+                hoverInfo.innerHTML = `<div class="month">📅 ${monthLabel}</div>`;
+            }
+
+            // 定位信息框
+            document.body.appendChild(hoverInfo);
+
+            // 设置位置（跟随鼠标，但有偏移避免遮挡）
+            const mouseX = event.clientX;
+            const mouseY = event.clientY;
+            const infoBox = hoverInfo.getBoundingClientRect();
+
+            let left = mouseX + 15;
+            let top = mouseY - infoBox.height / 2;
+
+            // 确保信息框不会超出屏幕边界
+            if (left + infoBox.width > window.innerWidth) {
+                left = mouseX - infoBox.width - 15;
+            }
+            if (top < 10) {
+                top = 10;
+            }
+            if (top + infoBox.height > window.innerHeight) {
+                top = window.innerHeight - infoBox.height - 10;
+            }
+
+            hoverInfo.style.left = left + 'px';
+            hoverInfo.style.top = top + 'px';
+        }
+
+        // 隐藏悬浮信息框
+        function hideHoverInfo() {
+            const hoverInfo = document.getElementById('hoverInfo');
+            if (hoverInfo) {
+                hoverInfo.remove();
+            }
+        }
+
+        function calculateCashFlow(storeData, indicatorKey, balancePoint) {
+            const result = {
+                monthly: [],
+                quarterly: [],
+                semiAnnual: [],
+                ninthMonths: [], // 添加9个月数据数组
+                annual: []
+            };
+
+            // 月度现金流（营收 - 收支平衡线）
+            result.monthly = storeData.map((item, index) => {
+                const value = parseValue(item[indicatorKey]);
+                return value - balancePoint;
+            });
+
+            // 计算累计现金流（3个月、6个月、12个月）
+            function calculatePeriodCashFlow(periodMonths) {
+                const periodResult = [];
+                for (let i = 0; i < storeData.length; i++) {
+                    if (i < periodMonths - 1) {
+                        periodResult.push(null); // 数据不足
+                    } else {
+                        // 计算近N个月的总营收
+                        let revenueSum = 0;
+                        for (let j = i - periodMonths + 1; j <= i; j++) {
+                            revenueSum += parseValue(storeData[j][indicatorKey]);
+                        }
+                        // 近N个月现金流 = 近N个月总营收 - N×平衡线
+                        periodResult.push(revenueSum - (periodMonths * balancePoint));
+                    }
+                }
+                return periodResult;
+            }
+
+            result.quarterly = calculatePeriodCashFlow(3);
+            result.semiAnnual = calculatePeriodCashFlow(6);
+            result.ninthMonths = calculatePeriodCashFlow(9); // 添加9个月计算
+            result.annual = calculatePeriodCashFlow(12);
+
+            return result;
+        }
+
+        // 创建现金流表格
+        function createCashFlowTable(container, storeData, indicator, balancePoint) {
+            const cashFlow = calculateCashFlow(storeData, indicator.key, balancePoint);
+            const latestIndex = storeData.length - 1;
+
+            // 创建整合的现金流卡片（包含表格和图表）
+            const combinedContainer = document.createElement('div');
+            combinedContainer.className = 'chart-container special-chart';
+            combinedContainer.style.marginTop = '20px';
+
+            const tableTitle = indicator.key === '总营收' ? '现金流表' : '盈亏状态表';
+            const chartTitle = indicator.key === '总营收' ? '月度现金流盈亏图' : '月度盈亏走势图';
+            const balanceType = indicator.key === '总营收' ? '收支平衡线' : '盈亏平衡线';
+
+            // 更新副标题，说明正确的算法
+            const algorithmText = indicator.key === '总营收'
+                ? '算法：近N个月总营收 - N×收支平衡线'
+                : '算法：近N个月确认收入 - N×盈亏平衡线';
+
+            combinedContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">${tableTitle} & ${chartTitle}</div>
+                        <div class="chart-subtitle">${algorithmText}</div>
+                    </div>
+                </div>
+
+                <!-- 表格部分 -->
+                <div style="padding: 20px; padding-bottom: 10px;">
+                    <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <thead style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                            <tr>
+                                <th style="padding: 12px; text-align: left; font-weight: 600;">时间段</th>
+                                <th style="padding: 12px; text-align: right; font-weight: 600;">${indicator.key === '总营收' ? '现金流金额' : '盈亏金额'}</th>
+                                <th style="padding: 12px; text-align: center; font-weight: 600;">状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cashflow-tbody-${indicator.key}">
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 图表部分 -->
+                <div style="padding: 0 20px 20px 20px;">
+                    <div class="chart-wrapper" style="height: 300px;">
+                        <canvas id="monthly-cashflow-chart-${indicator.key}"></canvas>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(combinedContainer);
+
+            // 填充表格数据
+            const tbody = document.getElementById(`cashflow-tbody-${indicator.key}`);
+
+                const periods = [
+                { name: '当月', data: cashFlow.monthly, index: latestIndex },
+                { name: '近3个月', data: cashFlow.quarterly, index: latestIndex },
+                { name: '近6个月', data: cashFlow.semiAnnual, index: latestIndex },
+                { name: '近9个月', data: cashFlow.ninthMonths, index: latestIndex }, // 添加9个月数据
+                { name: '近12个月', data: cashFlow.annual, index: latestIndex }
+            ];
+
+            periods.forEach(period => {
+                if (period.data[period.index] !== null) {
+                    const value = period.data[period.index];
+                    const isPositive = value > 0;
+                    const status = isPositive ? '盈余' : '亏损';
+                    // 反转颜色：盈余用红色（警示），亏损用绿色
+                    const statusColor = isPositive ? '#e74c3c' : '#27ae60';
+                    const sign = isPositive ? '+' : '';
+
+                    const row = document.createElement('tr');
+                    row.style.borderBottom = '1px solid #e9ecef';
+                    row.innerHTML = `
+                        <td style="padding: 12px; font-weight: 500;">${period.name}</td>
+                        <td style="padding: 12px; text-align: right; font-weight: 600; color: ${statusColor};">
+                            ${sign}${formatValue(value / 10000, 1)}万
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; background: ${statusColor}20; color: ${statusColor}; border: 1px solid ${statusColor}40;">
+                                ${status}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                }
+            });
+
+            // 在同一个卡片中创建月度盈亏图表
+            createMonthlyCashFlowChartInCard(combinedContainer, storeData, indicator, balancePoint);
+        }
+
+        // 在整合卡片中创建月度盈亏图表
+        function createMonthlyCashFlowChartInCard(combinedContainer, storeData, indicator, balancePoint) {
+            // 获取所有月份的数据
+            const labels = storeData.map(item => `${item['年份']}-${item['月份'].padStart(2, '0')}`);
+            const monthlyCashFlow = storeData.map((item, index) => {
+                const value = parseValue(item[indicator.key]);
+                return value - balancePoint;
+            });
+
+            // 准备颜色数组 - 盈余用红色，亏损用绿色
+            const colors = monthlyCashFlow.map(value => value > 0 ? '#e74c3c' : '#27ae60');
+
+            // 获取canvas元素
+            const canvas = document.getElementById(`monthly-cashflow-chart-${indicator.key}`);
+            const ctx = canvas.getContext('2d');
+
+            // 创建图表
+            charts[`monthly-cashflow-chart-${indicator.key}`] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: indicator.key === '总营收' ? '现金流' : '盈亏',
+                        data: monthlyCashFlow,
+                        backgroundColor: colors.map(color => color + '80'), // 添加透明度
+                        borderColor: colors,
+                        borderWidth: 2,
+                        borderRadius: 5,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false // 完全禁用图例
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed.y;
+                                    const status = value > 0 ? '盈余' : '亏损';
+                                    return `${status}: ¥${Math.abs(value / 10000).toFixed(1)}万`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: true,
+                            color: '#333',
+                            font: {
+                                size: 10,
+                                weight: 'bold'
+                            },
+                            formatter: function(value) {
+                                return `${(value / 10000).toFixed(1)}万`;
+                            },
+                            anchor: 'end',
+                            align: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '现金流 (万元)',
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return (value / 10000).toFixed(1) + '万';
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 暂时移除盈亏平衡线，以解决图例问题
+            // charts[`monthly-cashflow-chart-${indicator.key}`].data.datasets.push({
+            //     label: '盈亏平衡线', // 设置标签，但会通过多种方式隐藏
+            //     type: 'line', // 明确指定为线型
+            //     data: new Array(monthlyCashFlow.length).fill(0),
+            //     borderColor: '#f39c12',
+            //     borderWidth: 2,
+            //     borderDash: [8, 4],
+            //     pointRadius: 0,
+            //     fill: false,
+            //     tension: 0,
+            //     hidden: true, // 完全隐藏数据集
+            //     hiddenInLegend: true, // 不在图例中显示
+            //     order: 1, // 确保线在柱子后面渲染
+            //     skipNull: true, // 跳过空值
+            //     yAxisID: 'y', // 确保使用Y轴
+            //     borderWidth: 2,
+            //     borderDash: [8, 4]
+            // });
+
+            // 更新图表
+            charts[`monthly-cashflow-chart-${indicator.key}`].update();
+        }
+
+        // 创建月度盈亏图表（显示在现金流表格下方）
+        function createMonthlyCashFlowChart(container, storeData, indicator, balancePoint) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+            chartContainer.style.marginTop = '10px';
+            chartContainer.style.background = '#f8f9fa';
+
+            const chartTitle = indicator.key === '总营收' ? '月度现金流盈亏图' : '月度现金收支盈亏图';
+            const algorithmText = '显示每个月相对于平衡线的盈亏状况';
+
+            chartContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">${chartTitle}</div>
+                        <div class="chart-subtitle">${algorithmText}</div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="monthly-cashflow-chart-${indicator.key}"></canvas>
+                </div>
+            `;
+
+            container.appendChild(chartContainer);
+
+            // 获取所有月份的数据
+            const labels = storeData.map(item => `${item['年份']}-${item['月份'].padStart(2, '0')}`);
+            const monthlyCashFlow = storeData.map((item, index) => {
+                const value = parseValue(item[indicator.key]);
+                return value - balancePoint;
+            });
+
+            // 准备颜色数组 - 反转颜色：盈余用红色，亏损用绿色
+            const colors = monthlyCashFlow.map(value => value > 0 ? '#e74c3c' : '#27ae60');
+
+            const ctx = document.getElementById(`monthly-cashflow-chart-${indicator.key}`).getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: indicator.key === '总营收' ? '月度现金流' : '月度现金收支',
+                        data: monthlyCashFlow,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            display: true,
+                            color: '#333',
+                            font: {
+                                size: 9,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: 2,
+                            padding: 1,
+                            formatter: function(value) {
+                                const sign = value > 0 ? '+' : '';
+                                return `${sign}${formatValue(value / 10000, 1)}`;
+                            },
+                            anchor: 'end',
+                            align: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '盈亏金额（万元）',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatValue(value / 10000, 1) + '万';
+                                },
+                                font: {
+                                    size: 9
+                                }
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 9
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 创建现金流图表（替代表格）
+        function createCashFlowChart(container, storeData, indicator, balancePoint) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container';
+            chartContainer.style.marginTop = '20px';
+            chartContainer.style.background = '#f8f9fa';
+
+            const tableTitle = indicator.key === '总营收' ? '现金流盈亏状态图' : '现金收支盈亏状态图';
+            const algorithmText = indicator.key === '总营收'
+                ? '算法：近N个月总营收 - N×收支平衡线'
+                : '算法：近N个月确认收入 - N×盈亏平衡线';
+
+            chartContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">${tableTitle}</div>
+                        <div class="chart-subtitle">${algorithmText}</div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="cashflow-chart-${indicator.key}"></canvas>
+                </div>
+            `;
+
+            container.appendChild(chartContainer);
+
+            const labels = ['当月', '近3个月', '近6个月', '近9个月', '近12个月'];
+            const cashFlow = calculateCashFlow(storeData, indicator.key, balancePoint);
+            const latestIndex = storeData.length - 1;
+
+            // 准备数据
+            const chartData = [
+                cashFlow.monthly[latestIndex],
+                cashFlow.quarterly[latestIndex],
+                cashFlow.semiAnnual[latestIndex],
+                cashFlow.ninthMonths[latestIndex], // 添加9个月数据
+                cashFlow.annual[latestIndex]
+            ].filter(value => value !== null);
+
+            // 准备对应标签
+            const validLabels = [];
+            const validData = [];
+            const colors = []; // 根据盈亏状态设置颜色
+
+            for (let i = 0; i < chartData.length; i++) {
+                if (chartData[i] !== null) {
+                    validLabels.push(labels[i]);
+                    validData.push(chartData[i]);
+                    // 反转颜色：盈余用红色，亏损用绿色
+                    colors.push(chartData[i] > 0 ? '#e74c3c' : '#27ae60');
+                }
+            }
+
+            const ctx = document.getElementById(`cashflow-chart-${indicator.key}`).getContext('2d');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: validLabels,
+                    datasets: [{
+                        label: indicator.key === '总营收' ? '现金流' : '现金收支',
+                        data: validData,
+                        backgroundColor: colors,
+                        borderColor: colors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        datalabels: {
+                            display: true,
+                            color: '#333',
+                            font: {
+                                size: 11,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderRadius: 3,
+                            padding: 2,
+                            formatter: function(value) {
+                                const sign = value > 0 ? '+' : '';
+                                return `${sign}${formatValue(value / 10000, 1)}万`;
+                            },
+                            anchor: 'end',
+                            align: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '金额（万元）',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatValue(value / 10000, 1) + '万';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 创建新客分析图表
+        function createAClassCombinedChart(container, storeData) {
+            const chartContainer = document.createElement('div');
+            chartContainer.className = 'chart-container special-chart';
+
+            chartContainer.innerHTML = `
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">新客分析</div>
+                        <div class="chart-subtitle">美团点评、路过、老带新、其他渠道对比</div>
+                    </div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="aClassCombinedChart"></canvas>
+                </div>
+            `;
+
+            container.appendChild(chartContainer);
+
+            const labels = storeData.map(item => `${item['年份']}-${item['月份'].padStart(2, '0')}`);
+
+            // 参考基础指标的处理方式，每个数据集独立处理
+            const datasets = [];
+
+            aClassIndicators.forEach((indicator, index) => {
+                const values = storeData.map(item => parseValue(item[indicator.key]));
+                const borderColor = indicator.color;
+                const backgroundColor = indicator.color + '20';
+
+                datasets.push({
+                    label: indicator.label,
+                    data: values,
+                    borderColor: borderColor,
+                    backgroundColor: backgroundColor,
+                    borderWidth: 3,
+                    pointRadius: 5,
+                    pointBackgroundColor: borderColor,
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    tension: 0.2,
+                    fill: false
+                });
+            });
+
+            const ctx = document.getElementById('aClassCombinedChart').getContext('2d');
+
+            charts.aClassCombinedChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true, // 启用图例，让用户可以控制显示/隐藏
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                boxWidth: 12,
+                                padding: 15,
+                                // 自定义图例生成，只显示主要数据集
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        // 只返回前aClassIndicators.length个数据集（主要数据集）
+                                        return data.datasets.slice(0, aClassIndicators.length).map((dataset, i) => ({
+                                            text: dataset.label,
+                                            fillStyle: dataset.borderColor,
+                                            strokeStyle: dataset.borderColor,
+                                            lineWidth: dataset.borderWidth,
+                                            pointStyle: 'rectRounded',
+                                            hidden: !chart.isDatasetVisible(i),
+                                            datasetIndex: i
+                                        }));
+                                    }
+                                    return [];
+                                }
+                            },
+                            // 自定义点击处理
+                            onClick: function(e, legendItem, legend) {
+                                const index = legendItem.datasetIndex;
+                                const chart = legend.chart;
+                                const meta = chart.getDatasetMeta(index);
+
+                                // 切换主数据集的显示状态
+                                meta.hidden = meta.hidden === null ? !chart.data.datasets[index].hidden : null;
+
+                                // 同时切换相关的参考线数据集
+                                for (let i = aClassIndicators.length; i < chart.data.datasets.length; i++) {
+                                    const refMeta = chart.getDatasetMeta(i);
+                                    const refDataset = chart.data.datasets[i];
+                                    // 参考线跟随对应的主数据集的状态
+                                    if (refDataset.datasetIndexKey === 'reference' && refDataset.mainDatasetIndex === index) {
+                                        refMeta.hidden = meta.hidden;
+                                    }
+                                }
+
+                                chart.update();
+                            }
+                        },
+                        tooltip: {
+                            filter: function(tooltipItem) {
+                                // 只显示主要的数据集，隐藏所有参考线
+                                return tooltipItem.datasetIndex < aClassIndicators.length;
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    if (datasetLabel === '新客总计') {
+                                        const total = aClassIndicators.reduce((sum, indicator) => {
+                                            return sum + parseValue(storeData[context.dataIndex][indicator.key]);
+                                        }, 0);
+                                        return `新客总计: ${formatValue(total, 1)}人`;
+                                    } else {
+                                        return `${datasetLabel}: ${formatValue(context.parsed.y, 1)}人`;
+                                    }
+                                }
+                            }
+                        },
+                        datalabels: {
+                            display: function(context) {
+                                // 只显示主要数据集的标签，隐藏所有参考线标签
+                                return context.datasetIndex < aClassIndicators.length;
+                            },
+                            color: function(context) {
+                                return context.dataset.borderColor;
+                            },
+                            font: {
+                                size: 10,
+                                weight: 'bold'
+                            },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: function(context) {
+                                return context.dataset.borderColor;
+                            },
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: 2,
+                            formatter: function(value) {
+                                return formatValue(value, 1) + '人';
+                            },
+                            align: function(context) {
+                                const chart = context.chart;
+                                const chartArea = chart.chartArea;
+                                const dataset = context.dataset;
+                                const dataIndex = context.dataIndex;
+                                const y = dataset.data[dataIndex];
+                                const scaledY = chart.scales.y.getPixelForValue(y);
+
+                                // 如果当前点在图表上半部分，标签显示在下方
+                                if (scaledY < chartArea.top + 50) {
+                                    return 'bottom';
+                                }
+
+                                // 检查相邻数据点的值，避免重叠
+                                const prevY = dataIndex > 0 ? dataset.data[dataIndex - 1] : null;
+                                const nextY = dataIndex < dataset.data.length - 1 ? dataset.data[dataIndex + 1] : null;
+
+                                // 如果与相邻点值接近，交替显示位置
+                                if (prevY && Math.abs(y - prevY) < (chart.scales.y.max - chart.scales.y.min) * 0.08) {
+                                    return dataIndex % 2 === 0 ? 'top' : 'bottom';
+                                }
+
+                                return 'top';
+                            },
+                            offset: 8
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '人数',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '人';
+                                },
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '变化速度 (%)',
+                                font: {
+                                    size: 11,
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toFixed(1) + '%';
+                                },
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            // 设置合理的范围
+                            min: -100,
+                            max: 100
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 为每个数据集添加新的分析指标
+            aClassIndicators.forEach((indicator, index) => {
+                const values = storeData.map(item => parseValue(item[indicator.key]));
+                setTimeout(() => {
+                    addAnalysisIndicators(charts.aClassCombinedChart, values, 1, '人', storeData[0]['门店'], index);
+                }, 100);
+            });
+        }
+
+
+        
+      // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            init();
+
+            // 设置导航交互事件
+            setupNavigationInteraction();
+        });
+
+        // 设置导航交互功能
+        function setupNavigationInteraction() {
+            const trigger = document.getElementById('chartNavigationTrigger');
+            const navigation = document.getElementById('chartNavigation');
+            let isNavVisible = false;
+            let hideTimeout;
+
+            // 鼠标进入触发按钮时显示导航
+            trigger.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+                showNavigation();
+            });
+
+            // 鼠标进入导航面板时保持显示
+            navigation.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+            });
+
+            // 鼠标离开导航面板时延迟隐藏
+            navigation.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(() => {
+                    hideNavigation();
+                }, 300);
+            });
+
+            // 鼠标离开触发按钮时延迟隐藏
+            trigger.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(() => {
+                    hideNavigation();
+                }, 300);
+            });
+
+            // 点击触发按钮切换显示状态
+            trigger.addEventListener('click', function() {
+                if (isNavVisible) {
+                    hideNavigation();
+                } else {
+                    showNavigation();
+                }
+            });
+
+            // 点击导航面板外的区域隐藏导航
+            document.addEventListener('click', function(e) {
+                if (!trigger.contains(e.target) && !navigation.contains(e.target)) {
+                    hideNavigation();
+                }
+            });
+
+            // 显示导航
+            function showNavigation() {
+                navigation.classList.add('show');
+                trigger.classList.add('active');
+                isNavVisible = true;
+            }
+
+            // 隐藏导航
+            function hideNavigation() {
+                navigation.classList.remove('show');
+                trigger.classList.remove('active');
+                isNavVisible = false;
+            }
+        }
+    </script>
+</body>
+</html>
