@@ -418,7 +418,7 @@
             }
         }
         
-        // 计算排名系统（支持并列排名）
+        // 计算排名系统（支持密集并列排名）
         function calculateRankings(selectedNurse, dimensions) {
             const rankings = {};
 
@@ -433,12 +433,12 @@
                 // 按分数降序排序
                 allScores.sort((a, b) => b.score - a.score);
 
-                // 计算全公司排名（支持并列）
+                // 计算全公司排名（密集并列排名）
                 let companyRank = null;
                 let currentRank = 1;
                 for (let i = 0; i < allScores.length; i++) {
                     if (i > 0 && allScores[i].score < allScores[i-1].score) {
-                        currentRank = i + 1;
+                        currentRank++; // 密集排名：每次只递增1
                     }
                     if (allScores[i].name === selectedNurse) {
                         companyRank = currentRank;
@@ -446,14 +446,14 @@
                     }
                 }
 
-                // 计算全店排名（支持并列）
+                // 计算全店排名（密集并列排名）
                 const selectedNurseStore = parsedData.find(nurse => nurse['护理师'] === selectedNurse)['门店'];
                 const storeScores = allScores.filter(nurse => nurse.store === selectedNurseStore);
                 let storeRank = null;
                 currentRank = 1;
                 for (let i = 0; i < storeScores.length; i++) {
                     if (i > 0 && storeScores[i].score < storeScores[i-1].score) {
-                        currentRank = i + 1;
+                        currentRank++; // 密集排名：每次只递增1
                     }
                     if (storeScores[i].name === selectedNurse) {
                         storeRank = currentRank;
