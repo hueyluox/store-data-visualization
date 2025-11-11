@@ -533,13 +533,19 @@
                 filteredData = filteredData.sort((a, b) => a['护理师'].localeCompare(b['护理师']));
             }
 
-            // 为最终排序的数据计算所有维度的排名
+            // 为最终排序的数据计算所有维度的排名（支持并列排名）
             dimensions.forEach(dim => {
                 const sorted = [...filteredData].sort((a, b) =>
                     parseFloat(b[dim]) - parseFloat(a[dim])
                 );
+
+                // 计算并列排名
+                let currentRank = 1;
                 sorted.forEach((nurse, index) => {
-                    nurse[dim + '_display_rank'] = index + 1;
+                    if (index > 0 && parseFloat(sorted[index][dim]) < parseFloat(sorted[index-1][dim])) {
+                        currentRank = index + 1;
+                    }
+                    nurse[dim + '_display_rank'] = currentRank;
                 });
             });
 
