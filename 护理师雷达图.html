@@ -755,77 +755,78 @@
                                     displayText += '\n全店第' + rank.storeRank + '名';
                                     displayText += '\n全公司第' + rank.companyRank + '名';
                                 }
-                                // 默认不显示任何排名信息，保持简洁
 
                                 return displayText;
                             },
-                            // 美观的指示线+气泡框显示0值
-                            display: function(context) {
-                                const originalValue = originalData[context.dataIndex];
-                                // 只对0值或接近0值显示特殊气泡框
-                                return showDataLabels && (originalValue <= 1);
-                            },
-                            color: 'rgb(255, 193, 7)',
-                            font: {
-                                weight: '600',
-                                size: 11,
-                                family: "'Microsoft YaHei', Arial, sans-serif"
-                            },
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            borderColor: 'rgb(255, 193, 7)',
-                            borderWidth: 2,
-                            borderRadius: 12,
-                            padding: 12,
-                            textAlign: 'center',
-                            formatter: function(value, context) {
-                                const originalValue = originalData[context.dataIndex];
-                                const dimension = context.chart.data.labels[context.dataIndex];
-                                const rank = rankings[dimension];
-
-                                // 构建美观的气泡框内容
-                                let lines = [];
-                                lines.push('📊 ' + dimension); // 维度名称带图标
-                                lines.push('💰 ' + originalValue.toFixed(1) + '%'); // 百分比值
-
-                                if (showDetailLabels && rank) {
-                                    lines.push('🏪 全店第' + rank.storeRank + '名');
-                                    lines.push('🌐 全公司第' + rank.companyRank + '名');
-                                }
-
-                                return lines.join('\n');
-                            },
-                            // 动态定位策略：为0值创建远离中心的气泡框
+                            // 智能调整标签位置，根据数值类型决定布局
                             anchor: function(context) {
                                 const dataIndex = context.dataIndex;
-                                const zeroValueAnchors = [
-                                    'end',    // A类转化率 - 右侧
-                                    'end',    // B类转化率 - 右侧
-                                    'end',    // C类转化率 - 右侧
-                                    'start',  // A类二次到店率 - 左侧
-                                    'start',  // B类二次到店率 - 左侧
-                                    'start',  // C类二次到店率 - 左侧
-                                    'end'     // D类二次到店率 - 右侧
-                                ];
-                                return zeroValueAnchors[dataIndex] || 'end';
+                                const originalValue = originalData[context.dataIndex];
+
+                                // 0值或接近0值使用特殊定位
+                                if (originalValue <= 1) {
+                                    const zeroValueAnchors = [
+                                        'end',    // A类转化率 - 右侧
+                                        'end',    // B类转化率 - 右侧
+                                        'end',    // C类转化率 - 右侧
+                                        'start',  // A类二次到店率 - 左侧
+                                        'start',  // B类二次到店率 - 左侧
+                                        'start',  // C类二次到店率 - 左侧
+                                        'end'     // D类二次到店率 - 右侧
+                                    ];
+                                    return zeroValueAnchors[dataIndex] || 'end';
+                                }
+
+                                // 正常值的外移逻辑
+                                return 'end';
                             },
                             align: function(context) {
                                 const dataIndex = context.dataIndex;
-                                const zeroValueAligns = [
-                                    'bottom', // A类转化率
-                                    'top',    // B类转化率
-                                    'bottom', // C类转化率
-                                    'top',    // A类二次到店率
-                                    'bottom', // B类二次到店率
-                                    'top',    // C类二次到店率
-                                    'bottom'  // D类二次到店率
-                                ];
-                                return zeroValueAligns[dataIndex] || 'bottom';
+                                const originalValue = originalData[context.dataIndex];
+
+                                // 0值或接近0值使用特殊对齐
+                                if (originalValue <= 1) {
+                                    const zeroValueAligns = [
+                                        'bottom', // A类转化率
+                                        'top',    // B类转化率
+                                        'bottom', // C类转化率
+                                        'top',    // A类二次到店率
+                                        'bottom', // B类二次到店率
+                                        'top',    // C类二次到店率
+                                        'bottom'  // D类二次到店率
+                                    ];
+                                    return zeroValueAligns[dataIndex] || 'bottom';
+                                }
+
+                                // 正常值的对齐方式
+                                if (dataIndex === 0) return 'bottom';   // A类转化率
+                                if (dataIndex === 1) return 'bottom';   // B类转化率
+                                if (dataIndex === 2) return 'bottom';   // C类转化率
+                                if (dataIndex === 3) return 'bottom';   // A类二次到店率
+                                if (dataIndex === 4) return 'top';      // B类二次到店率
+                                if (dataIndex === 5) return 'top';      // C类二次到店率
+                                if (dataIndex === 6) return 'bottom';   // D类二次到店率
+                                return 'bottom';
                             },
                             offset: function(context) {
                                 const dataIndex = context.dataIndex;
-                                // 增加更大的偏移量，确保气泡框在图表外部
-                                const zeroValueOffsets = [60, 55, 65, 60, 55, 65, 70];
-                                return zeroValueOffsets[dataIndex] || 60;
+                                const originalValue = originalData[context.dataIndex];
+
+                                // 0值或接近0值使用更大的偏移量确保分离
+                                if (originalValue <= 1) {
+                                    const zeroValueOffsets = [60, 55, 65, 60, 55, 65, 70];
+                                    return zeroValueOffsets[dataIndex] || 60;
+                                }
+
+                                // 正常值的偏移量
+                                if (dataIndex === 0) return 25;   // A类转化率
+                                if (dataIndex === 1) return 20;   // B类转化率
+                                if (dataIndex === 2) return 20;   // C类转化率
+                                if (dataIndex === 3) return 22;   // A类二次到店率
+                                if (dataIndex === 4) return 18;   // B类二次到店率
+                                if (dataIndex === 5) return 18;   // C类二次到店率
+                                if (dataIndex === 6) return 25;   // D类二次到店率
+                                return 20;
                             }
                         }
                     }, {
