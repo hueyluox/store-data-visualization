@@ -330,6 +330,35 @@
             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
         }
 
+        /* 分母警告样式 */
+        .denominator-warning {
+            font-size: 10px;
+            color: #dc3545;
+            font-weight: 600;
+            background: #fff5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #f8d7da;
+            margin-left: 5px;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .score-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cell-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
         /* 响应式设计 */
         @media (max-width: 1200px) {
             .ranking-table {
@@ -339,6 +368,11 @@
             .ranking-table th,
             .ranking-table td {
                 padding: 8px 6px;
+            }
+
+            .denominator-warning {
+                font-size: 9px;
+                padding: 1px 2px;
             }
         }
 
@@ -355,6 +389,17 @@
 
             .view-toggle {
                 justify-content: center;
+            }
+
+            .score-wrapper {
+                align-items: flex-start;
+                gap: 1px;
+            }
+
+            .denominator-warning {
+                font-size: 8px;
+                padding: 1px 2px;
+                line-height: 1.2;
             }
         }
 
@@ -412,22 +457,22 @@
     </div>
 
     <script>
-        // 原始数据
-        const rawData = `门店,护理师,年份,月份,A类转化率,B类转化率,C类转化率,D类转化率,A类二次到店率,B类二次到店率,C类二次到店率,D类二次到店率
-平安,Fancy,2025,10,25,20,40,0,15,50,50,43.33
-平安,Iris,2025,10,0,20,50,5,0,20,75,60
-平安,Merry,2025,10,15,20,30,0,30,40,55,70
-平安,Miya,2025,10,5,40,55,0,25,60,60,56.67
-平安,Tammy,2025,10,10,10,35,0,10,60,50,33.33
-侨城,Ava,2025,10,15,60,20,5,25,60,60,66.67
-侨城,Cary,2025,10,20,0,12.5,0,30,100,50,62.5
-侨城,Emma,2025,10,15,10,45,5,10,40,65,73.33
-侨城,Vivi,2025,10,10,50,50,5,15,77.78,60,80
-侨城,Yuki,2025,10,15,40,40,0,25,70,60,80
-双玺,Gina,2025,10,40,50,30,5,20,60,60,66.67
-双玺,Lena,2025,10,15,60,33.33,5,30,75,50,63.33
-双玺,Lilian,2025,10,20,40,50,5,35,80,60,63.33
-双玺,Lucy,2025,10,25,40,40,10,50,50,55,63.33`;
+        // 原始数据（包含分母信息）
+        const rawData = `门店,护理师,年份,月份,A类转化分子,A类转化分母,A类转化率,B类转化分子,B类转化分母,B类转化率,C类转化分子,C类转化分母,C类转化率,D类转化分子,D类转化分母,D类转化率,A类二次到店分子,A类二次到店分母,A类二次到店率,B类二次到店分子,B类二次到店分母,B类二次到店率,C类二次到店分子,C类二次到店分母,C类二次到店率,D类二次到店分子,D类二次到店分母,D类二次到店率
+平安,Fancy,2025,10,5,20,25,2,10,20,8,20,40,0,20,0,3,20,15,5,10,50,10,20,50,13,30,43.33
+平安,Iris,2025,10,0,20,0,2,10,20,10,20,50,1,20,5,0,20,0,2,10,20,15,20,75,18,30,60
+平安,Merry,2025,10,3,20,15,2,10,20,6,20,30,0,20,0,6,20,30,4,10,40,11,20,55,21,30,70
+平安,Miya,2025,10,1,20,5,4,10,40,11,20,55,0,20,0,5,20,25,6,10,60,12,20,60,17,30,56.67
+平安,Tammy,2025,10,2,20,10,1,10,10,7,20,35,0,20,0,2,20,10,6,10,60,10,20,50,10,30,33.33
+侨城,Ava,2025,10,3,20,15,6,10,60,4,20,20,1,20,5,5,20,25,6,10,60,12,20,60,20,30,66.67
+侨城,Cary,2025,10,3,15,20,0,4,0,1,8,12.5,0,20,0,3,10,30,2,2,100,3,6,50,15,24,62.5
+侨城,Emma,2025,10,3,20,15,1,10,10,9,20,45,1,20,5,2,20,10,4,10,40,13,20,65,22,30,73.33
+侨城,Vivi,2025,10,2,20,10,5,10,50,10,20,50,1,20,5,3,20,15,7,9,77.78,12,20,60,24,30,80
+侨城,Yuki,2025,10,3,20,15,4,10,40,8,20,40,0,20,0,5,20,25,7,10,70,12,20,60,24,30,80
+双玺,Gina,2025,10,8,20,40,6,10,60,6,20,30,1,20,5,4,20,20,6,10,60,12,20,60,20,30,66.67
+双玺,Lena,2025,10,3,20,15,3,5,60,6,18,33.33,1,20,5,6,20,30,3,10,75,5,10,50,19,30,63.33
+双玺,Lilian,2025,10,4,20,20,4,10,40,10,20,50,1,20,5,7,20,35,8,10,80,12,20,60,19,30,63.33
+双玺,Lucy,2025,10,5,20,25,4,10,40,8,20,40,2,20,10,10,20,50,5,10,50,11,20,55,19,30,63.33`;
 
         let parsedData = [];
         let currentView = 'detailed';
@@ -450,6 +495,25 @@
             }
 
             return data;
+        }
+
+        // 获取分母标准
+        const denominatorStandards = {
+            'A类转化分母': 20,
+            'B类转化分母': 10,
+            'C类转化分母': 20,
+            'D类转化分母': 20,
+            'A类二次到店分母': 20,
+            'B类二次到店分母': 10,
+            'C类二次到店分母': 20,
+            'D类二次到店分母': 30
+        };
+
+        // 检查分母是否达标
+        function isDenominatorSufficient(denominatorField, value) {
+            const denominator = parseFloat(value) || 0;
+            const standard = denominatorStandards[denominatorField];
+            return denominator >= standard;
         }
 
       
@@ -601,10 +665,52 @@
                     const scoreClass = getScoreClass(value);
                     const rankBadgeClass = getRankBadgeClass(rank);
 
+                    // 获取对应的分母字段
+                    let denominatorField = '';
+                    let denominatorValue = '';
+
+                    if (dim === 'A类转化率') {
+                        denominatorField = 'A类转化分母';
+                        denominatorValue = nurse['A类转化分母'];
+                    } else if (dim === 'B类转化率') {
+                        denominatorField = 'B类转化分母';
+                        denominatorValue = nurse['B类转化分母'];
+                    } else if (dim === 'C类转化率') {
+                        denominatorField = 'C类转化分母';
+                        denominatorValue = nurse['C类转化分母'];
+                    } else if (dim === 'D类转化率') {
+                        denominatorField = 'D类转化分母';
+                        denominatorValue = nurse['D类转化分母'];
+                    } else if (dim === 'A类二次到店率') {
+                        denominatorField = 'A类二次到店分母';
+                        denominatorValue = nurse['A类二次到店分母'];
+                    } else if (dim === 'B类二次到店率') {
+                        denominatorField = 'B类二次到店分母';
+                        denominatorValue = nurse['B类二次到店分母'];
+                    } else if (dim === 'C类二次到店率') {
+                        denominatorField = 'C类二次到店分母';
+                        denominatorValue = nurse['C类二次到店分母'];
+                    } else if (dim === 'D类二次到店率') {
+                        denominatorField = 'D类二次到店分母';
+                        denominatorValue = nurse['D类二次到店分母'];
+                    }
+
+                    // 检查分母是否足够
+                    const isSufficient = isDenominatorSufficient(denominatorField, denominatorValue);
+
+                    // 构建带标注的显示内容
+                    let denominatorNote = '';
+                    if (!isSufficient && denominatorValue && denominatorValue !== '0') {
+                        denominatorNote = `<span class="denominator-warning">(分母:${denominatorValue}人)</span>`;
+                    }
+
                     cellsHtml += `
                         <td>
                             <div class="cell-content">
-                                <span class="score-value ${scoreClass}">${value.toFixed(1)}%</span>
+                                <div class="score-wrapper">
+                                    <span class="score-value ${scoreClass}">${value.toFixed(1)}%</span>
+                                    ${denominatorNote}
+                                </div>
                                 <span class="rank-badge ${rankBadgeClass}">${rank}</span>
                             </div>
                         </td>
@@ -614,11 +720,8 @@
                 row.innerHTML = cellsHtml;
                 tbody.appendChild(row);
             });
+        }
 
-                    }
-
-  
-        
         // 筛选门店
         function filterByStore() {
             const select = document.getElementById('storeFilter');
