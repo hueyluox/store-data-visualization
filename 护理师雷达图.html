@@ -418,10 +418,10 @@
             }
         }
         
-        // 计算排名系统
+        // 计算排名系统（支持并列排名）
         function calculateRankings(selectedNurse, dimensions) {
             const rankings = {};
-            
+
             dimensions.forEach(dimension => {
                 // 获取所有护理师在该维度的数据
                 const allScores = parsedData.map(nurse => ({
@@ -429,18 +429,38 @@
                     store: nurse['门店'],
                     score: parseFloat(nurse[dimension]) || 0
                 }));
-                
+
                 // 按分数降序排序
                 allScores.sort((a, b) => b.score - a.score);
-                
-                // 计算全公司排名
-                const companyRank = allScores.findIndex(nurse => nurse.name === selectedNurse) + 1;
-                
-                // 计算全店排名
+
+                // 计算全公司排名（支持并列）
+                let companyRank = null;
+                let currentRank = 1;
+                for (let i = 0; i < allScores.length; i++) {
+                    if (i > 0 && allScores[i].score < allScores[i-1].score) {
+                        currentRank = i + 1;
+                    }
+                    if (allScores[i].name === selectedNurse) {
+                        companyRank = currentRank;
+                        break;
+                    }
+                }
+
+                // 计算全店排名（支持并列）
                 const selectedNurseStore = parsedData.find(nurse => nurse['护理师'] === selectedNurse)['门店'];
                 const storeScores = allScores.filter(nurse => nurse.store === selectedNurseStore);
-                const storeRank = storeScores.findIndex(nurse => nurse.name === selectedNurse) + 1;
-                
+                let storeRank = null;
+                currentRank = 1;
+                for (let i = 0; i < storeScores.length; i++) {
+                    if (i > 0 && storeScores[i].score < storeScores[i-1].score) {
+                        currentRank = i + 1;
+                    }
+                    if (storeScores[i].name === selectedNurse) {
+                        storeRank = currentRank;
+                        break;
+                    }
+                }
+
                 rankings[dimension] = {
                     companyRank: companyRank,
                     storeRank: storeRank,
