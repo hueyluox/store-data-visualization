@@ -633,10 +633,26 @@
             return 'rank-other';
         }
 
-        // 获取分数样式
-        function getScoreClass(value) {
-            if (value >= 60) return 'high';
-            if (value >= 40) return 'medium';
+        // 获取分数样式（按不同维度设置及格和优秀标准）
+        function getScoreClass(value, dimension) {
+            value = parseFloat(value) || 0;
+
+            // 定义各维度的评分标准
+            const standards = {
+                'A类转化率': { pass: 20, excellent: 30 },
+                'B类转化率': { pass: 50, excellent: 80 },
+                'C类转化率': { pass: 50, excellent: 80 },
+                'A类二次到店率': { pass: 20, excellent: 40 },
+                'B类二次到店率': { pass: 60, excellent: 80 },
+                'C类二次到店率': { pass: 60, excellent: 80 },
+                'D类二次到店率': { pass: 60, excellent: 80 }
+            };
+
+            const standard = standards[dimension];
+            if (!standard) return 'low';
+
+            if (value >= standard.excellent) return 'high';
+            if (value >= standard.pass) return 'medium';
             return 'low';
         }
 
@@ -671,7 +687,7 @@
                 dimensions.forEach(dim => {
                     const value = parseFloat(nurse[dim]) || 0;
                     const rank = nurse[dim + '_display_rank'];
-                    const scoreClass = getScoreClass(value);
+                    const scoreClass = getScoreClass(value, dim);
                     const rankBadgeClass = getRankBadgeClass(rank);
 
                     // 获取对应的分母字段
