@@ -112,6 +112,137 @@
             border-color: #667eea;
         }
 
+        /* 极简评分标准 - 放在控制栏 */
+        .score-standard-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .score-standard-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .score-standard-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            width: 380px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+            z-index: 1001;
+            font-size: 11px;
+            line-height: 1.4;
+            display: none;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .score-standard-panel.show {
+            display: block;
+        }
+
+        .score-standard-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
+        .standard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .standard-grid-item {
+            background: rgba(248, 249, 250, 0.6);
+            padding: 6px 8px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .standard-dimension {
+            font-weight: 600;
+            color: #495057;
+            display: block;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+
+        .standard-values {
+            display: flex;
+            gap: 8px;
+            font-size: 9px;
+            justify-content: space-between;
+        }
+
+        .standard-pass {
+            color: #f39c12;
+            background: rgba(255, 243, 205, 0.7);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .standard-excellent {
+            color: #27ae60;
+            background: rgba(212, 237, 218, 0.7);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .color-simple-legend {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e9ecef;
+            font-size: 10px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+        }
+
+        .color-simple-legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .color-red {
+            background: #e74c3c;
+        }
+
+        .color-yellow {
+            background: #f39c12;
+        }
+
+        .color-green {
+            background: #27ae60;
+        }
+
         .content {
             padding: 30px;
         }
@@ -426,6 +557,84 @@
                     <option value="侨城">侨城店</option>
                     <option value="双玺">双玺店</option>
                 </select>
+            </div>
+
+            <!-- 评分标准说明 - 可展开/收起 -->
+            <div style="position: relative;">
+                <button class="score-standard-btn" onclick="toggleScoreStandard()">
+                    ℹ️ 评分标准
+                </button>
+                <div class="score-standard-panel" id="scoreStandardPanel">
+                    <h3>评分标准说明</h3>
+                    <div style="display: flex; gap: 15px;">
+                        <!-- 左列：转化率 -->
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #667eea; text-align: center; border-bottom: 1px solid #e9ecef; padding-bottom: 5px;">转化率</h4>
+                            <div class="standard-grid" style="display: block;">
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">A类转化率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 20%</span>
+                                        <span class="standard-excellent">优秀: 30%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">B类转化率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 50%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">C类转化率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 50%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 右列：二次到店率 -->
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #667eea; text-align: center; border-bottom: 1px solid #e9ecef; padding-bottom: 5px;">二次到店率</h4>
+                            <div class="standard-grid" style="display: block;">
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">A类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 20%</span>
+                                        <span class="standard-excellent">优秀: 40%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">B类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 60%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">C类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 60%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">D类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 60%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="color-simple-legend">
+                        <span><span class="color-indicator color-red"></span>不及格</span>
+                        <span><span class="color-indicator color-yellow"></span>及格</span>
+                        <span><span class="color-indicator color-green"></span>优秀</span>
+                    </div>
+                </div>
             </div>
 
             <button class="export-btn" onclick="exportToExcel()">
@@ -778,6 +987,27 @@
 
         // 页面加载完成后初始化
         window.addEventListener('load', init);
+
+        // 切换评分标准面板显示/隐藏
+        function toggleScoreStandard() {
+            const panel = document.getElementById('scoreStandardPanel');
+            panel.classList.toggle('show');
+        }
+
+        // 点击页面其他地方关闭评分标准面板
+        document.addEventListener('click', function(event) {
+            const panel = document.getElementById('scoreStandardPanel');
+            const btn = event.target.closest('.score-standard-btn');
+            const panelContent = event.target.closest('.score-standard-panel');
+
+            // 如果点击的是按钮或面板内部，不处理
+            if (btn || panelContent) return;
+
+            // 否则关闭面板
+            if (panel) {
+                panel.classList.remove('show');
+            }
+        });
     </script>
 </body>
 </html>
