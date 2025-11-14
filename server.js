@@ -36,6 +36,8 @@ const server = http.createServer((req, res) => {
     // 处理特定的路由
     if (pathname === '/store-analysis.html') {
         pathname = '/pages/门店指标走势分析.html';
+    } else if (pathname === '/store-analysis-enhanced.html') {
+        pathname = '/pages/store-analysis-enhanced.html';
     } else if (pathname === '/nurse-radar.html') {
         pathname = '/pages/CC/护理师雷达图.html';
     } else if (pathname === '/ranking-table.html') {
