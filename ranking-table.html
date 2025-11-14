@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>护理师排名对比表</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 25px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        select {
+            padding: 10px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+            transition: all 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .view-btn {
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            background: white;
+            color: #495057;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .view-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .view-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* 极简评分标准 - 放在控制栏 */
+        .score-standard-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .score-standard-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .score-standard-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            width: 380px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.2);
+            z-index: 1001;
+            font-size: 11px;
+            line-height: 1.4;
+            display: none;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .score-standard-panel.show {
+            display: block;
+        }
+
+        .score-standard-panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 13px;
+            color: #2c3e50;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 5px;
+            text-align: center;
+        }
+
+        .standard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .standard-grid-item {
+            background: rgba(248, 249, 250, 0.6);
+            padding: 6px 8px;
+            border-radius: 6px;
+            border-left: 3px solid #667eea;
+        }
+
+        .standard-dimension {
+            font-weight: 600;
+            color: #495057;
+            display: block;
+            margin-bottom: 2px;
+            font-size: 10px;
+        }
+
+        .standard-values {
+            display: flex;
+            gap: 8px;
+            font-size: 9px;
+            justify-content: space-between;
+        }
+
+        .standard-pass {
+            color: #f39c12;
+            background: rgba(255, 243, 205, 0.7);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
+        .standard-excellent {
+            color: #27ae60;
+            background: rgba(212, 237, 218, 0.7);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .color-simple-legend {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e9ecef;
+            font-size: 10px;
+            color: #6c757d;
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+        }
+
+        .color-simple-legend span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .color-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .color-red {
+            background: #e74c3c;
+        }
+
+        .color-yellow {
+            background: #f39c12;
+        }
+
+        .color-green {
+            background: #27ae60;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .ranking-table thead {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .ranking-table th {
+            padding: 18px 15px;
+            text-align: center;
+            font-weight: 700;
+            color: #2c3e50;
+            font-size: 14px;
+            border-bottom: 2px solid #dee2e6;
+            position: relative;
+            white-space: nowrap;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .ranking-table th:hover {
+            background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+            transform: translateY(-1px);
+        }
+
+        .ranking-table th.sortable::after {
+            content: '↕';
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #6c757d;
+            opacity: 0.7;
+        }
+
+        .ranking-table th.sort-asc::after {
+            content: '↑';
+            color: #667eea;
+            opacity: 1;
+        }
+
+        .ranking-table th.sort-desc::after {
+            content: '↓';
+            color: #667eea;
+            opacity: 1;
+        }
+
+        .ranking-table th small {
+            display: block;
+            font-weight: 400;
+            color: #6c757d;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .ranking-table th:first-child {
+            text-align: left;
+            min-width: 120px;
+        }
+
+        .ranking-table tbody tr {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f1f3f4;
+        }
+
+        .ranking-table tbody tr:hover {
+            background: #f8f9ff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+        }
+
+        .ranking-table td {
+            padding: 15px 8px;
+            text-align: center;
+            font-size: 14px;
+            color: #495057;
+            border-bottom: 1px solid #f1f3f4;
+            vertical-align: middle;
+        }
+
+        .ranking-table td:first-child {
+            font-weight: 600;
+            text-align: left;
+            background: #f8f9fa;
+        }
+
+        .nurse-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .nurse-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nurse-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .nurse-store {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+            min-width: 35px;
+            text-align: center;
+            margin-left: 8px;
+            position: relative;
+        }
+
+        .rank-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(255, 215, 0, 0.4);
+            border: 2px solid #ffd700;
+            transform: scale(1.05);
+        }
+
+        .rank-2 {
+            background: linear-gradient(135deg, #c0c0c0 0%, #808080 100%);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(192, 192, 192, 0.5);
+            border: 2px solid #a0a0a0;
+            transform: scale(1.05);
+        }
+
+        .rank-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
+            color: #fff;
+            box-shadow: 0 3px 12px rgba(205, 127, 50, 0.4);
+            border: 2px solid #cd7f32;
+            transform: scale(1.02);
+        }
+
+        .rank-other {
+            background: #e9ecef;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+  
+        .cell-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .score-value {
+            font-weight: 700;
+            font-size: 16px;
+            min-width: 55px;
+            text-align: right;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 11px;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .score-value.high {
+            color: #27ae60;
+        }
+
+        .score-value.medium {
+            color: #f39c12;
+        }
+
+        .score-value.low {
+            color: #e74c3c;
+        }
+
+    
+      
+        .export-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        /* 分母警告样式 */
+        .denominator-warning {
+            font-size: 10px;
+            color: #dc3545;
+            font-weight: 600;
+            background: #fff5f5;
+            padding: 2px 4px;
+            border-radius: 3px;
+            border: 1px solid #f8d7da;
+            margin-left: 5px;
+            display: inline-block;
+            white-space: nowrap;
+        }
+
+        .score-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cell-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .ranking-table {
+                font-size: 12px;
+            }
+
+            .ranking-table th,
+            .ranking-table td {
+                padding: 8px 6px;
+            }
+
+            .denominator-warning {
+                font-size: 9px;
+                padding: 1px 2px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .view-toggle {
+                justify-content: center;
+            }
+
+            .score-wrapper {
+                align-items: flex-start;
+                gap: 1px;
+            }
+
+            .denominator-warning {
+                font-size: 8px;
+                padding: 1px 2px;
+                line-height: 1.2;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>护理师技能排名对比表</h1>
+            <p>转化率技能 + 二次到店技能排名，支持按门店筛选和全公司对比</p>
+        </div>
+
+        <div class="controls">
+            <div class="filter-group">
+                <label>门店筛选:</label>
+                <select id="storeFilter">
+                    <option value="all">全公司</option>
+                    <option value="平安">平安店</option>
+                    <option value="侨城">侨城店</option>
+                    <option value="双玺">双玺店</option>
+                </select>
+            </div>
+
+            <!-- 评分标准说明 - 可展开/收起 -->
+            <div style="position: relative;">
+                <button class="score-standard-btn" onclick="toggleScoreStandard()">
+                    ℹ️ 评分标准
+                </button>
+                <div class="score-standard-panel" id="scoreStandardPanel">
+                    <h3>评分标准说明</h3>
+                    <div style="display: flex; gap: 15px;">
+                        <!-- 左列：转化率 -->
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #667eea; text-align: center; border-bottom: 1px solid #e9ecef; padding-bottom: 5px;">转化率</h4>
+                            <div class="standard-grid" style="display: block;">
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">A类转化率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 20%</span>
+                                        <span class="standard-excellent">优秀: 30%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">B类转化率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 50%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">C类转化率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 50%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 右列：二次到店率 -->
+                        <div style="flex: 1;">
+                            <h4 style="margin: 0 0 10px 0; font-size: 12px; color: #667eea; text-align: center; border-bottom: 1px solid #e9ecef; padding-bottom: 5px;">二次到店率</h4>
+                            <div class="standard-grid" style="display: block;">
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">A类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 20%</span>
+                                        <span class="standard-excellent">优秀: 40%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">B类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 60%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">C类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 60%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                                <div class="standard-grid-item">
+                                    <span class="standard-dimension">D类二次到店率</span>
+                                    <div class="standard-values">
+                                        <span class="standard-pass">及格: 60%</span>
+                                        <span class="standard-excellent">优秀: 80%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="color-simple-legend">
+                        <span><span class="color-indicator color-red"></span>不及格</span>
+                        <span><span class="color-indicator color-yellow"></span>及格</span>
+                        <span><span class="color-indicator color-green"></span>优秀</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="export-btn" onclick="exportToExcel()">
+                导出Excel
+            </button>
+        </div>
+
+        <div class="content">
+
+            <!-- 排名表格 -->
+            <table class="ranking-table" id="rankingTable">
+                <thead>
+                    <tr>
+                        <th>护理师</th>
+                        <th class="sortable" onclick="sortByDimension('A类转化率')">A类转化率<br><small>(新客户转化)</small></th>
+                        <th class="sortable" onclick="sortByDimension('B类转化率')">B类转化率<br><small>(中客户转化)</small></th>
+                        <th class="sortable" onclick="sortByDimension('C类转化率')">C类转化率<br><small>(老客户转化)</small></th>
+                        <th class="sortable" onclick="sortByDimension('A类二次到店率')">A类二次到店率<br><small>(新客户复购)</small></th>
+                        <th class="sortable" onclick="sortByDimension('B类二次到店率')">B类二次到店率<br><small>(中客户复购)</small></th>
+                        <th class="sortable" onclick="sortByDimension('C类二次到店率')">C类二次到店率<br><small>(老客户复购)</small></th>
+                        <th class="sortable" onclick="sortByDimension('D类二次到店率')">D类二次到店率<br><small>(流失客户复购)</small></th>
+                    </tr>
+                </thead>
+                <tbody id="rankingTableBody">
+                    <!-- 动态生成表格内容 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 原始数据（包含分母信息）
+        const rawData = `门店,护理师,年份,月份,A类转化分子,A类转化分母,A类转化率,B类转化分子,B类转化分母,B类转化率,C类转化分子,C类转化分母,C类转化率,D类转化分子,D类转化分母,D类转化率,A类二次到店分子,A类二次到店分母,A类二次到店率,B类二次到店分子,B类二次到店分母,B类二次到店率,C类二次到店分子,C类二次到店分母,C类二次到店率,D类二次到店分子,D类二次到店分母,D类二次到店率
+平安,Fancy,2025,10,5,20,25,3,10,30,9,20,45,0,30,0,3,20,15,5,10,50,10,20,50,12,30,40
+平安,Iris,2025,10,3,20,15,2,10,20,10,20,50,1,30,3.33,0,20,0,2,10,20,15,20,75,18,30,60
+平安,Merry,2025,10,4,20,20,3,10,30,6,20,30,0,30,0,6,20,30,4,10,40,11,20,55,21,30,70
+平安,Miya,2025,10,3,20,15,4,10,40,11,20,55,0,30,0,5,20,25,6,10,60,12,20,60,17,30,56.67
+平安,Tammy,2025,10,2,20,10,6,10,60,6,20,30,0,30,0,2,20,10,6,10,60,10,20,50,10,30,33.33
+侨城,Ava,2025,10,4,20,20,6,10,60,4,20,20,1,30,3.33,5,20,25,6,10,60,12,20,60,20,30,66.67
+侨城,Cary,2025,10,3,9,33.33,0,3,0,1,8,12.5,0,30,0,3,10,30,2,2,100,3,6,50,15,24,62.5
+侨城,Emma,2025,10,4,20,20,1,10,10,9,20,45,1,30,3.33,2,20,10,4,10,40,13,20,65,22,30,73.33
+侨城,Vivi,2025,10,2,20,10,5,10,50,10,20,50,1,30,3.33,3,20,15,7,9,77.78,12,20,60,24,30,80
+侨城,Yuki,2025,10,5,20,25,4,10,40,8,20,40,0,30,0,5,20,25,7,10,70,12,20,60,24,30,80
+双玺,Gina,2025,10,9,20,45,6,10,60,6,20,30,1,30,3.33,4,20,20,6,10,60,12,20,60,20,30,66.67
+双玺,Lena,2025,10,3,20,15,3,5,60,6,18,33.33,2,30,6.67,6,20,30,3,4,75,5,10,50,19,30,63.33
+双玺,Lilian,2025,10,5,20,25,4,10,40,10,20,50,1,30,3.33,7,20,35,8,10,80,12,20,60,19,30,63.33
+双玺,Lucy,2025,10,6,20,30,5,10,50,8,20,40,2,30,6.67,10,20,50,5,10,50,11,20,55,19,30,63.33`;
+
+        let parsedData = [];
+        let currentView = 'detailed';
+        let currentFilter = 'all';
+        let currentSort = { dimension: null, order: 'desc' };
+
+        // 解析数据
+        function parseData() {
+            const lines = rawData.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const record = {};
+                headers.forEach((header, index) => {
+                    record[header] = values[index];
+                });
+                data.push(record);
+            }
+
+            return data;
+        }
+
+        // 获取分母标准
+        const denominatorStandards = {
+            'A类转化分母': 20,
+            'B类转化分母': 10,
+            'C类转化分母': 20,
+            'D类转化分母': 20,
+            'A类二次到店分母': 20,
+            'B类二次到店分母': 10,
+            'C类二次到店分母': 20,
+            'D类二次到店分母': 30
+        };
+
+        // 检查分母是否达标
+        function isDenominatorSufficient(denominatorField, value) {
+            const denominator = parseFloat(value) || 0;
+            const standard = denominatorStandards[denominatorField];
+            return denominator >= standard;
+        }
+
+      
+        // 排序功能
+        function sortByDimension(dimension) {
+            // 更新排序状态
+            if (currentSort.dimension === dimension) {
+                // 如果是相同维度，切换排序顺序
+                currentSort.order = currentSort.order === 'desc' ? 'asc' : 'desc';
+            } else {
+                // 如果是不同维度，设置为降序
+                currentSort.dimension = dimension;
+                currentSort.order = 'desc';
+            }
+
+            // 更新表头样式
+            updateSortHeaders();
+
+            // 重新生成表格
+            generateTable(currentFilter);
+        }
+
+        // 更新表头排序样式
+        function updateSortHeaders() {
+            // 移除所有排序类
+            document.querySelectorAll('.ranking-table th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+
+            // 为当前排序列添加样式
+            if (currentSort.dimension) {
+                const dimensionNames = [
+                    'A类转化率', 'B类转化率', 'C类转化率',
+                    'A类二次到店率', 'B类二次到店率', 'C类二次到店率', 'D类二次到店率'
+                ];
+                const index = dimensionNames.indexOf(currentSort.dimension);
+                if (index !== -1) {
+                    const th = document.querySelectorAll('.ranking-table th')[index + 1]; // +1 因为第一列是护理师
+                    th.classList.add(currentSort.order === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            }
+        }
+
+        // 计算排名
+        function calculateRankings(data, filterStore = 'all') {
+            let filteredData = data;
+
+            if (filterStore !== 'all') {
+                filteredData = data.filter(nurse => nurse['门店'] === filterStore);
+            }
+
+            const dimensions = [
+                'A类转化率', 'B类转化率', 'C类转化率',
+                'A类二次到店率', 'B类二次到店率', 'C类二次到店率', 'D类二次到店率'
+            ];
+
+            // 如果有自定义排序，按排序维度重新排序
+            if (currentSort.dimension) {
+                filteredData = filteredData.sort((a, b) => {
+                    const valueA = parseFloat(a[currentSort.dimension]) || 0;
+                    const valueB = parseFloat(b[currentSort.dimension]) || 0;
+
+                    if (currentSort.order === 'desc') {
+                        // 降序：从高到低
+                        if (valueB !== valueA) {
+                            return valueB - valueA;
+                        }
+                        // 数值相同时，按护理师名字排序
+                        return a['护理师'].localeCompare(b['护理师']);
+                    } else {
+                        // 升序：从低到高
+                        if (valueA !== valueB) {
+                            return valueA - valueB;
+                        }
+                        // 数值相同时，按护理师名字排序
+                        return a['护理师'].localeCompare(b['护理师']);
+                    }
+                });
+            } else {
+                // 默认按护理师名字排序
+                filteredData = filteredData.sort((a, b) => a['护理师'].localeCompare(b['护理师']));
+            }
+
+            // 为最终排序的数据计算所有维度的排名（密集并列排名）
+            dimensions.forEach(dim => {
+                const sorted = [...filteredData].sort((a, b) => {
+                    const valueA = parseFloat(a[dim]) || 0;
+                    const valueB = parseFloat(b[dim]) || 0;
+                    return valueB - valueA; // 降序排列
+                });
+
+                // 计算密集并列排名
+                let currentRank = 1;
+                let previousValue = null;
+
+                sorted.forEach((nurse) => {
+                    const currentValue = parseFloat(nurse[dim]) || 0;
+
+                    // 如果当前值小于前一个值（出现递减），增加排名
+                    if (previousValue !== null && currentValue < previousValue) {
+                        currentRank++;
+                    }
+
+                    nurse[dim + '_display_rank'] = currentRank;
+                    previousValue = currentValue;
+                });
+            });
+
+            return filteredData;
+        }
+
+        // 获取排名徽章样式
+        function getRankBadgeClass(rank) {
+            if (rank === 1) return 'rank-1';
+            if (rank === 2) return 'rank-2';
+            if (rank === 3) return 'rank-3';
+            return 'rank-other';
+        }
+
+        // 获取分数样式（按不同维度设置及格和优秀标准）
+        function getScoreClass(value, dimension) {
+            value = parseFloat(value) || 0;
+
+            // 定义各维度的评分标准
+            const standards = {
+                'A类转化率': { pass: 20, excellent: 30 },
+                'B类转化率': { pass: 50, excellent: 80 },
+                'C类转化率': { pass: 50, excellent: 80 },
+                'A类二次到店率': { pass: 20, excellent: 40 },
+                'B类二次到店率': { pass: 60, excellent: 80 },
+                'C类二次到店率': { pass: 60, excellent: 80 },
+                'D类二次到店率': { pass: 60, excellent: 80 }
+            };
+
+            const standard = standards[dimension];
+            if (!standard) return 'low';
+
+            if (value >= standard.excellent) return 'high';
+            if (value >= standard.pass) return 'medium';
+            return 'low';
+        }
+
+        // 生成表格
+        function generateTable(filterStore = 'all') {
+            const rankings = calculateRankings(parsedData, filterStore);
+            const tbody = document.getElementById('rankingTableBody');
+
+            tbody.innerHTML = '';
+
+            rankings.forEach(nurse => {
+                const row = document.createElement('tr');
+
+                // 护理师信息
+                const nurseInfo = `
+                    <div class="nurse-info">
+                        <div class="nurse-details">
+                            <div class="nurse-name">${nurse['护理师']}</div>
+                            <div class="nurse-store">${nurse['门店']}</div>
+                        </div>
+                    </div>
+                `;
+
+                // 生成各维度的排名和数值
+                let cellsHtml = `<td>${nurseInfo}</td>`;
+
+                const dimensions = [
+                    'A类转化率', 'B类转化率', 'C类转化率',
+                    'A类二次到店率', 'B类二次到店率', 'C类二次到店率', 'D类二次到店率'
+                ];
+
+                dimensions.forEach(dim => {
+                    const value = parseFloat(nurse[dim]) || 0;
+                    const rank = nurse[dim + '_display_rank'];
+                    const scoreClass = getScoreClass(value, dim);
+                    const rankBadgeClass = getRankBadgeClass(rank);
+
+                    // 获取对应的分母字段
+                    let denominatorField = '';
+                    let denominatorValue = '';
+
+                    if (dim === 'A类转化率') {
+                        denominatorField = 'A类转化分母';
+                        denominatorValue = nurse['A类转化分母'];
+                    } else if (dim === 'B类转化率') {
+                        denominatorField = 'B类转化分母';
+                        denominatorValue = nurse['B类转化分母'];
+                    } else if (dim === 'C类转化率') {
+                        denominatorField = 'C类转化分母';
+                        denominatorValue = nurse['C类转化分母'];
+                    } else if (dim === 'D类转化率') {
+                        denominatorField = 'D类转化分母';
+                        denominatorValue = nurse['D类转化分母'];
+                    } else if (dim === 'A类二次到店率') {
+                        denominatorField = 'A类二次到店分母';
+                        denominatorValue = nurse['A类二次到店分母'];
+                    } else if (dim === 'B类二次到店率') {
+                        denominatorField = 'B类二次到店分母';
+                        denominatorValue = nurse['B类二次到店分母'];
+                    } else if (dim === 'C类二次到店率') {
+                        denominatorField = 'C类二次到店分母';
+                        denominatorValue = nurse['C类二次到店分母'];
+                    } else if (dim === 'D类二次到店率') {
+                        denominatorField = 'D类二次到店分母';
+                        denominatorValue = nurse['D类二次到店分母'];
+                    }
+
+                    // 检查分母是否足够
+                    const isSufficient = isDenominatorSufficient(denominatorField, denominatorValue);
+
+                    // 构建带标注的显示内容
+                    let denominatorNote = '';
+                    if (!isSufficient && denominatorValue && denominatorValue !== '0') {
+                        denominatorNote = `<span class="denominator-warning">(分母:${denominatorValue}人)</span>`;
+                    }
+
+                    cellsHtml += `
+                        <td>
+                            <div class="cell-content">
+                                <div class="score-wrapper">
+                                    <span class="score-value ${scoreClass}">${value.toFixed(1)}%</span>
+                                    ${denominatorNote}
+                                </div>
+                                <span class="rank-badge ${rankBadgeClass}">${rank}</span>
+                            </div>
+                        </td>
+                    `;
+                });
+
+                row.innerHTML = cellsHtml;
+                tbody.appendChild(row);
+            });
+        }
+
+        // 筛选门店
+        function filterByStore() {
+            const select = document.getElementById('storeFilter');
+            currentFilter = select.value;
+            generateTable(currentFilter);
+        }
+
+        // 导出Excel
+        function exportToExcel() {
+            // 这里可以实现导出功能
+            alert('Excel导出功能开发中...');
+        }
+
+        // 初始化
+        function init() {
+            parsedData = parseData();
+
+            // 绑定事件
+            document.getElementById('storeFilter').addEventListener('change', filterByStore);
+
+            // 生成初始表格
+            generateTable('all');
+
+            // 初始化表头样式
+            document.querySelectorAll('.ranking-table th.sortable').forEach(th => {
+                th.classList.add('sortable');
+            });
+        }
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+
+        // 切换评分标准面板显示/隐藏
+        function toggleScoreStandard() {
+            const panel = document.getElementById('scoreStandardPanel');
+            panel.classList.toggle('show');
+        }
+
+        // 点击页面其他地方关闭评分标准面板
+        document.addEventListener('click', function(event) {
+            const panel = document.getElementById('scoreStandardPanel');
+            const btn = event.target.closest('.score-standard-btn');
+            const panelContent = event.target.closest('.score-standard-panel');
+
+            // 如果点击的是按钮或面板内部，不处理
+            if (btn || panelContent) return;
+
+            // 否则关闭面板
+            if (panel) {
+                panel.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>

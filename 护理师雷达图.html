@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>护理师表现雷达图</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+          
+        .controls {
+            padding: 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .nurse-tags {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nurse-tag {
+            padding: 8px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            background: white;
+            color: #495057;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .nurse-tag:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .nurse-tag.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .nurse-tag.active:hover {
+            background: linear-gradient(135deg, #5a72d8 0%, #6b4190 100%);
+            transform: translateY(-2px);
+        }
+        
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        select {
+            padding: 8px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background: white;
+            font-size: 14px;
+            min-width: 150px;
+            transition: border-color 0.3s;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .chart-container {
+            padding: 30px;
+            position: relative;
+            height: 700px;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 40px 20px 40px;
+            background: #f8f9fa;
+        }
+        
+        .info-card {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            flex: 1;
+            margin: 0 10px;
+            text-align: center;
+        }
+        
+        .info-card h3 {
+            margin: 0 0 10px 0;
+            color: #667eea;
+            font-size: 16px;
+        }
+        
+        .info-card p {
+            margin: 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        
+        .toggle-labels-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .toggle-labels-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .toggle-labels-btn:active {
+            transform: translateY(0);
+        }
+
+        .toggle-labels-btn.hidden {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            box-shadow: 0 2px 8px rgba(108, 117, 125, 0.2);
+        }
+
+        .toggle-labels-btn.hidden:hover {
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+        }
+
+        .score-summary {
+            padding: 15px 25px;
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin: 15px 40px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+        }
+
+        .score-summary h2 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .score-summary-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .rank-card {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            transition: all 0.2s ease;
+            text-align: center;
+            min-width: 110px;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .rank-card:hover {
+            background: #f1f3f4;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(102, 126, 234, 0.15);
+        }
+
+        .dimension-name {
+            font-weight: 700;
+            font-size: 14px;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            white-space: nowrap;
+        }
+
+        .rank-info {
+            font-size: 12px;
+            line-height: 1.3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rank-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            flex: 1;
+        }
+
+        .rank-label {
+            font-size: 10px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .rank-value {
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .rank-first .rank-value { color: #dc3545; font-weight: 700; }
+        .rank-normal .rank-value { color: #2c3e50; font-weight: 600; }
+
+        /* 转化率特殊样式 */
+        .score-summary-content .rank-card:nth-child(1),
+        .score-summary-content .rank-card:nth-child(2),
+        .score-summary-content .rank-card:nth-child(3) {
+            border-left-color: #28a745;
+        }
+
+        /* 二次到店率特殊样式 */
+        .score-summary-content .rank-card:nth-child(4),
+        .score-summary-content .rank-card:nth-child(5),
+        .score-summary-content .rank-card:nth-child(6),
+        .score-summary-content .rank-card:nth-child(7) {
+            border-left-color: #fd7e14;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls">
+            <div class="nurse-tags" id="nurseTags">
+                <!-- 护理师标签将在这里动态生成 -->
+            </div>
+        </div>
+        
+        <div class="score-summary" id="scoreSummary" style="display: none;">
+            <h2 id="overallScore">平均表现：0%</h2>
+            <p id="scoreDescription">请选择护理师查看详细分析</p>
+        </div>
+        
+                
+        <div class="chart-container">
+            <button class="toggle-labels-btn" id="toggleLabelsBtn" onclick="toggleDataLabels()">
+                <span id="btnIcon">👁️</span>
+                <span id="btnText">隐藏数字</span>
+            </button>
+            <button class="toggle-labels-btn" id="toggleDetailBtn" onclick="toggleDetailLabels()" style="top: 45px;">
+                <span id="detailBtnIcon">📊</span>
+                <span id="detailBtnText">显示详情</span>
+            </button>
+            <canvas id="radarChart"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(255, 193, 7, 0.3); border: 3px solid rgb(255, 193, 7);"></div>
+                <span>实际表现</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgb(220, 53, 69); border: 2px solid #fff; border-radius: 50%;"></div>
+                <span>及格标准点</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgb(13, 110, 253); border: 2px solid #fff; border-radius: 50%;"></div>
+                <span>优秀标准点</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 原始数据
+        const rawData = `门店,护理师,年份,月份,A类转化率,B类转化率,C类转化率,D类转化率,A类二次到店率,B类二次到店率,C类二次到店率,D类二次到店率
+平安,Fancy,2025,10,25,30,45,0,15,50,50,40
+平安,Iris,2025,10,15,20,50,3.33,0,20,75,60
+平安,Merry,2025,10,20,30,30,0,30,40,55,70
+平安,Miya,2025,10,15,40,55,0,25,60,60,56.67
+平安,Tammy,2025,10,10,60,30,0,10,60,50,33.33
+侨城,Ava,2025,10,20,60,20,3.33,25,60,60,66.67
+侨城,Cary,2025,10,33.33,0,12.5,0,30,100,50,62.5
+侨城,Emma,2025,10,20,10,45,3.33,10,40,65,73.33
+侨城,Vivi,2025,10,10,50,50,3.33,15,77.78,60,80
+侨城,Yuki,2025,10,25,40,40,0,25,70,60,80
+双玺,Gina,2025,10,45,60,30,3.33,20,60,60,66.67
+双玺,Lena,2025,10,15,60,33.33,6.67,30,75,50,63.33
+双玺,Lilian,2025,10,25,40,50,3.33,35,80,60,63.33
+双玺,Lucy,2025,10,30,50,40,6.67,50,50,55,63.33`;
+        
+        // 标准设置 - 优秀值作为坐标轴顶点
+        const standards = {
+            'A类转化率': { pass: 20, excellent: 40 }, // 40%作为顶点
+            'B类转化率': { pass: 50, excellent: 80 }, // 80%作为顶点
+            'C类转化率': { pass: 50, excellent: 80 }, // 80%作为顶点
+            'A类二次到店率': { pass: 20, excellent: 40 },
+            'B类二次到店率': { pass: 60, excellent: 80 }, // 80%作为顶点
+            'C类二次到店率': { pass: 60, excellent: 80 }, // 80%作为顶点
+            'D类二次到店率': { pass: 60, excellent: 80 }  // 80%作为顶点
+        };
+        
+        // 解析数据
+        function parseData() {
+            const lines = rawData.trim().split('\n');
+            const headers = lines[0].split(',');
+            const data = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',');
+                const record = {};
+                headers.forEach((header, index) => {
+                    record[header] = values[index];
+                });
+                data.push(record);
+            }
+            
+            return data;
+        }
+        
+        // 标准化计算：以各维度优秀值为100%进行标准化
+        function calculateScore(value, dimension) {
+            const numValue = parseFloat(value) || 0;
+            const standard = standards[dimension];
+            
+            if (standard.excellent) {
+                // 以该维度的优秀值为基准标准化到100
+                return (numValue / standard.excellent) * 100;
+            }
+            return numValue;
+        }
+        
+        // 获取及格线标准化数值
+        function getPassLine(dimension) {
+            const standard = standards[dimension];
+            if (standard.pass !== null && standard.excellent) {
+                // 按优秀值标准化及格线
+                return (standard.pass / standard.excellent) * 100;
+            }
+            return null;
+        }
+        
+        // 计算动态的坐标轴最大值
+        function calculateAxisMax(actualScores, dimensions) {
+            // 标准化后，优秀值都是100%
+            const excellentStandard = 100;
+            
+            // 找到实际标准化数据中的最大值
+            const maxActual = Math.max(...actualScores.filter(score => score !== null && score !== undefined));
+            
+            // 如果实际值超过100%（优秀标准），则扩展坐标轴
+            if (maxActual > excellentStandard) {
+                return Math.ceil(maxActual * 1.1 / 10) * 10; // 向上取整到10的倍数
+            } else {
+                return 100; // 优秀值就是边缘，不需要额外空间
+            }
+        }
+        
+        // 计算排名系统（支持密集并列排名）
+        function calculateRankings(selectedNurse, dimensions) {
+            const rankings = {};
+
+            dimensions.forEach(dimension => {
+                // 获取所有护理师在该维度的数据
+                const allScores = parsedData.map(nurse => ({
+                    name: nurse['护理师'],
+                    store: nurse['门店'],
+                    score: parseFloat(nurse[dimension]) || 0
+                }));
+
+                // 按分数降序排序
+                allScores.sort((a, b) => b.score - a.score);
+
+                // 计算全公司排名（密集并列排名）
+                let companyRank = null;
+                let currentRank = 1;
+                for (let i = 0; i < allScores.length; i++) {
+                    if (i > 0 && allScores[i].score < allScores[i-1].score) {
+                        currentRank++; // 密集排名：每次只递增1
+                    }
+                    if (allScores[i].name === selectedNurse) {
+                        companyRank = currentRank;
+                        break;
+                    }
+                }
+
+                // 计算全店排名（密集并列排名）
+                const selectedNurseStore = parsedData.find(nurse => nurse['护理师'] === selectedNurse)['门店'];
+                const storeScores = allScores.filter(nurse => nurse.store === selectedNurseStore);
+                let storeRank = null;
+                currentRank = 1;
+                for (let i = 0; i < storeScores.length; i++) {
+                    if (i > 0 && storeScores[i].score < storeScores[i-1].score) {
+                        currentRank++; // 密集排名：每次只递增1
+                    }
+                    if (storeScores[i].name === selectedNurse) {
+                        storeRank = currentRank;
+                        break;
+                    }
+                }
+
+                rankings[dimension] = {
+                    companyRank: companyRank,
+                    storeRank: storeRank,
+                    totalCompany: allScores.length,
+                    totalStore: storeScores.length
+                };
+            });
+            
+            return rankings;
+        }
+        
+        let chart = null;
+        let parsedData = [];
+        let isPluginRegistered = false;
+        let showDataLabels = true; // 默认显示数据标签
+        let showDetailLabels = false; // 默认不显示详细排名信息
+        let currentNurse = null; // 当前选择的护理师
+        
+        // 初始化
+        function init() {
+            try {
+                console.log('开始初始化...');
+                parsedData = parseData();
+                console.log('数据解析完成，共', parsedData.length, '条记录');
+                populateNurseTags();
+                console.log('初始化完成');
+            } catch (error) {
+                console.error('初始化错误:', error);
+                alert('系统初始化失败，请检查浏览器控制台');
+            }
+        }
+
+        // 更新护理师标签
+        function updateNurseTags() {
+            const nurseTagsContainer = document.getElementById('nurseTags');
+
+            // 清空现有标签
+            nurseTagsContainer.innerHTML = '';
+
+            // 显示所有护理师
+            const nurses = [...new Set(parsedData.map(item => item['护理师']))];
+            nurses.forEach((nurse, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'nurse-tag';
+                tag.textContent = nurse;
+                tag.onclick = () => selectNurse(nurse, tag);
+                nurseTagsContainer.appendChild(tag);
+
+                // 自动选择第一个护理师
+                if (index === 0) {
+                    setTimeout(() => {
+                        selectNurse(nurse, tag);
+                    }, 100);
+                }
+            });
+        }
+
+        // 选择护理师
+        function selectNurse(nurseName, tagElement) {
+            // 移除所有active类
+            document.querySelectorAll('.nurse-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+
+            // 添加active类到选中的标签
+            tagElement.classList.add('active');
+
+            // 记录当前选择的护理师
+            currentNurse = nurseName;
+
+            // 更新图表
+            updateChartWithNurse(nurseName);
+        }
+
+        // 切换数据标签显示
+        function toggleDataLabels() {
+            showDataLabels = !showDataLabels;
+
+            const btn = document.getElementById('toggleLabelsBtn');
+            const btnText = document.getElementById('btnText');
+            const btnIcon = document.getElementById('btnIcon');
+
+            if (showDataLabels) {
+                btn.classList.remove('hidden');
+                btnText.textContent = '隐藏数字';
+                btnIcon.textContent = '👁️';
+            } else {
+                btn.classList.add('hidden');
+                btnText.textContent = '显示数字';
+                btnIcon.textContent = '👁️‍🗨️';
+            }
+
+            // 更新每个数据集的标签显示
+            if (chart) {
+                chart.data.datasets.forEach(dataset => {
+                    dataset.datalabels.display = showDataLabels;
+                });
+                chart.update();
+            }
+        }
+
+        // 切换详细排名信息显示
+        function toggleDetailLabels() {
+            showDetailLabels = !showDetailLabels;
+
+            const btn = document.getElementById('toggleDetailBtn');
+            const btnText = document.getElementById('detailBtnText');
+            const btnIcon = document.getElementById('detailBtnIcon');
+
+            if (showDetailLabels) {
+                btn.classList.remove('hidden');
+                btnText.textContent = '隐藏详情';
+                btnIcon.textContent = '📊';
+            } else {
+                btn.classList.add('hidden');
+                btnText.textContent = '显示详情';
+                btnIcon.textContent = '📈';
+            }
+
+            // 重新创建图表以更新标签内容
+            if (chart && currentNurse) {
+                updateChartWithNurse(currentNurse);
+            }
+        }
+
+        // 填充护理师标签（初始化时使用）
+        function populateNurseTags() {
+            updateNurseTags();
+        }
+        
+        // 更新图表（接受护理师名称参数）
+        function updateChartWithNurse(selectedNurse) {
+            try {
+                console.log('开始更新图表...', selectedNurse);
+
+                if (!selectedNurse) {
+                    document.getElementById('scoreSummary').style.display = 'none';
+                    if (chart) {
+                        chart.destroy();
+                        chart = null;
+                    }
+                    return;
+                }
+
+                // 找到选中护理师的数据
+                const nurseData = parsedData.find(item => item['护理师'] === selectedNurse);
+                console.log('找到护理师数据:', nurseData);
+
+                if (!nurseData) {
+                    console.error('未找到护理师数据:', selectedNurse);
+                    return;
+                }
+            
+            // 准备雷达图数据 - 移除D类转化率
+            const dimensions = [
+                'A类转化率', 'B类转化率', 'C类转化率',
+                'A类二次到店率', 'B类二次到店率', 'C类二次到店率', 'D类二次到店率'
+            ];
+            
+            const actualScores = dimensions.map(dim => 
+                calculateScore(nurseData[dim], dim)
+            );
+            
+            const passScores = dimensions.map(dim => 
+                getPassLine(dim)
+            );
+            
+            // 计算综合得分（使用原始数据）
+            const originalScores = dimensions.map(dim => parseFloat(nurseData[dim]) || 0);
+            const overallScore = originalScores.reduce((sum, score) => sum + score, 0) / dimensions.length;
+            
+            // 计算排名信息
+            const rankings = calculateRankings(selectedNurse, dimensions);
+            
+            // 更新得分摘要
+            updateScoreSummary(selectedNurse, nurseData['门店'], overallScore, originalScores, dimensions, rankings);
+            
+            // 计算动态坐标轴最大值
+            const axisMax = calculateAxisMax(actualScores, dimensions);
+            
+            // 获取原始数据用于标签显示
+            const originalData = dimensions.map(dim => parseFloat(nurseData[dim]) || 0);
+            
+                // 创建图表
+                console.log('开始创建雷达图...');
+                createRadarChart(dimensions, actualScores, passScores, selectedNurse, axisMax, originalData, rankings);
+                console.log('图表创建完成');
+            } catch (error) {
+                console.error('更新图表错误:', error);
+                alert('图表更新失败，请检查浏览器控制台: ' + error.message);
+            }
+        }
+        
+        // 更新得分摘要
+        function updateScoreSummary(nurseName, store, overallScore, scores, dimensions, rankings) {
+            document.getElementById('scoreSummary').style.display = 'block';
+            document.getElementById('overallScore').textContent = '';
+
+            let description = '<div class="score-summary-content">';
+
+            dimensions.forEach((dimension, index) => {
+                const rank = rankings[dimension];
+                let shortName;
+                if (dimension.includes('转化率')) {
+                    shortName = dimension.replace('A类', 'A').replace('B类', 'B').replace('C类', 'C');
+                } else {
+                    shortName = dimension.replace('A类', 'A').replace('B类', 'B').replace('C类', 'C').replace('D类', 'D')
+                                     .replace('二次到店率', '二次');
+                }
+
+                // 确定排名等级
+                let storeRankClass = rank.storeRank === 1 ? 'rank-first' : 'rank-normal';
+                let companyRankClass = rank.companyRank === 1 ? 'rank-first' : 'rank-normal';
+
+                description += `
+                    <div class="rank-card">
+                        <div class="dimension-name">${shortName}</div>
+                        <div class="rank-info">
+                            <div class="rank-item ${storeRankClass}">
+                                <div class="rank-label">全店</div>
+                                <div class="rank-value">${rank.storeRank}</div>
+                            </div>
+                            <div class="rank-item ${companyRankClass}">
+                                <div class="rank-label">全公司</div>
+                                <div class="rank-value">${rank.companyRank}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            description += '</div>';
+            document.getElementById('scoreDescription').innerHTML = description;
+        }
+        
+        // 创建雷达图
+        function createRadarChart(labels, actualData, passData, nurseName, axisMax, originalData, rankings) {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            if (chart) {
+                chart.destroy();
+            }
+            
+            // 计算优秀值线数据 - 标准化后都是100%
+            const excellentData = labels.map(label => {
+                const standard = standards[label];
+                // 如果设置了优秀值，则显示为标准化的100%
+                return standard.excellent !== null ? 100 : null;
+            });
+            
+            // 注册DataLabels插件
+            if (!isPluginRegistered) {
+                Chart.register(ChartDataLabels);
+                isPluginRegistered = true;
+            }
+            
+            chart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${nurseName} 实际表现`,
+                        data: actualData,
+                        backgroundColor: 'rgba(255, 193, 7, 0.3)',
+                        borderColor: 'rgb(255, 193, 7)',
+                        borderWidth: 3,
+                        pointBackgroundColor: 'rgb(255, 193, 7)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 8,
+                        fill: true,
+                        datalabels: {
+                            display: showDataLabels,
+                            color: 'rgb(255, 140, 0)',
+                            font: { weight: 'bold', size: 8 },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgb(255, 193, 7)',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            padding: 2,
+                            textAlign: 'center',
+                            formatter: function(value, context) {
+                                // 根据showDetailLabels变量显示不同详细程度的信息
+                                const originalValue = originalData[context.dataIndex];
+                                const dimension = context.chart.data.labels[context.dataIndex];
+                                const rank = rankings[dimension];
+
+                                let displayText = originalValue.toFixed(1) + '%';
+
+                                if (showDetailLabels && rank) {
+                                    // 显示详细排名信息
+                                    displayText += '\n全店第' + rank.storeRank + '名';
+                                    displayText += '\n全公司第' + rank.companyRank + '名';
+                                }
+
+                                return displayText;
+                            },
+                            // 智能调整标签位置，根据数值类型决定布局
+                            anchor: function(context) {
+                                const dataIndex = context.dataIndex;
+                                const originalValue = originalData[context.dataIndex];
+
+                                // 0值或接近0值使用特殊定位
+                                if (originalValue <= 1) {
+                                    const zeroValueAnchors = [
+                                        'end',    // A类转化率 - 右侧
+                                        'end',    // B类转化率 - 右侧
+                                        'end',    // C类转化率 - 右侧
+                                        'start',  // A类二次到店率 - 左侧
+                                        'start',  // B类二次到店率 - 左侧
+                                        'start',  // C类二次到店率 - 左侧
+                                        'end'     // D类二次到店率 - 右侧
+                                    ];
+                                    return zeroValueAnchors[dataIndex] || 'end';
+                                }
+
+                                // 正常值的外移逻辑
+                                return 'end';
+                            },
+                            align: function(context) {
+                                const dataIndex = context.dataIndex;
+                                const originalValue = originalData[context.dataIndex];
+
+                                // 0值或接近0值使用特殊对齐
+                                if (originalValue <= 1) {
+                                    const zeroValueAligns = [
+                                        'bottom', // A类转化率
+                                        'top',    // B类转化率
+                                        'bottom', // C类转化率
+                                        'top',    // A类二次到店率
+                                        'bottom', // B类二次到店率
+                                        'top',    // C类二次到店率
+                                        'bottom'  // D类二次到店率
+                                    ];
+                                    return zeroValueAligns[dataIndex] || 'bottom';
+                                }
+
+                                // 正常值的对齐方式
+                                if (dataIndex === 0) return 'bottom';   // A类转化率
+                                if (dataIndex === 1) return 'bottom';   // B类转化率
+                                if (dataIndex === 2) return 'bottom';   // C类转化率
+                                if (dataIndex === 3) return 'bottom';   // A类二次到店率
+                                if (dataIndex === 4) return 'top';      // B类二次到店率
+                                if (dataIndex === 5) return 'top';      // C类二次到店率
+                                if (dataIndex === 6) return 'bottom';   // D类二次到店率
+                                return 'bottom';
+                            },
+                            offset: function(context) {
+                                const dataIndex = context.dataIndex;
+                                const originalValue = originalData[context.dataIndex];
+
+                                // 0值或接近0值使用更大的偏移量确保分离
+                                if (originalValue <= 1) {
+                                    const zeroValueOffsets = [60, 55, 65, 60, 55, 65, 70];
+                                    return zeroValueOffsets[dataIndex] || 60;
+                                }
+
+                                // 正常值的偏移量
+                                if (dataIndex === 0) return 25;   // A类转化率
+                                if (dataIndex === 1) return 20;   // B类转化率
+                                if (dataIndex === 2) return 20;   // C类转化率
+                                if (dataIndex === 3) return 22;   // A类二次到店率
+                                if (dataIndex === 4) return 18;   // B类二次到店率
+                                if (dataIndex === 5) return 18;   // C类二次到店率
+                                if (dataIndex === 6) return 25;   // D类二次到店率
+                                return 20;
+                            }
+                        }
+                    }, {
+                        label: '及格标准线',
+                        data: passData,
+                        backgroundColor: 'transparent',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        pointBackgroundColor: 'rgb(220, 53, 69)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 8,
+                        fill: false,
+                        showLine: false,
+                        datalabels: {
+                            display: showDataLabels,
+                            color: 'rgb(220, 53, 69)',
+                            font: { weight: 'bold', size: 8 },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgb(220, 53, 69)',
+                            borderWidth: 1,
+                            borderRadius: 2,
+                            padding: 1,
+                            formatter: function(value, context) {
+                                const dimension = context.chart.data.labels[context.dataIndex];
+                                const standard = standards[dimension];
+                                return standard.pass !== null ? standard.pass + '%' : '';
+                            },
+                            // 及格标准点恢复到正常位置，因为实际标签已外移
+                            anchor: function(context) {
+                                const dataIndex = context.dataIndex;
+                                // 恢复原来的布局，红点显示在中心附近
+                                return dataIndex <= 3 ? 'end' : 'start';
+                            },
+                            align: function(context) {
+                                const dataIndex = context.dataIndex;
+                                return dataIndex <= 3 ? 'bottom' : 'top';
+                            },
+                            offset: 5
+                        }
+                    }, {
+                        label: '优秀标准线',
+                        data: excellentData,
+                        backgroundColor: 'transparent',
+                        borderColor: 'transparent',
+                        borderWidth: 0,
+                        pointBackgroundColor: 'rgb(13, 110, 253)',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 8,
+                        fill: false,
+                        showLine: false,
+                        datalabels: {
+                            display: showDataLabels,
+                            color: 'rgb(13, 110, 253)',
+                            font: { weight: 'bold', size: 8 },
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgb(13, 110, 253)',
+                            borderWidth: 1,
+                            borderRadius: 2,
+                            padding: 1,
+                            formatter: function(value, context) {
+                                const dimension = context.chart.data.labels[context.dataIndex];
+                                const standard = standards[dimension];
+                                return standard.excellent !== null ? standard.excellent + '%' : '';
+                            },
+                            // 根据维度位置动态调整标签位置，避免与实际数据标签重叠
+                            anchor: function(context) {
+                                const dataIndex = context.dataIndex;
+                                // 针对A类转化率(0)和D类二次到店率(6)特殊处理，避免重叠
+                                if (dataIndex === 0) return 'end';    // A类转化率 - 向右显示
+                                if (dataIndex === 1) return 'end';    // B类转化率
+                                if (dataIndex === 2) return 'end';    // C类转化率
+                                if (dataIndex === 3) return 'end';    // A类二次到店率
+                                if (dataIndex === 4) return 'start';  // B类二次到店率
+                                if (dataIndex === 5) return 'start';  // C类二次到店率
+                                if (dataIndex === 6) return 'end';    // D类二次到店率 - 向右显示
+                                return 'end';
+                            },
+                            align: function(context) {
+                                const dataIndex = context.dataIndex;
+                                if (dataIndex === 0) return 'bottom';  // A类转化率 - 向下对齐
+                                if (dataIndex === 1) return 'bottom';  // B类转化率
+                                if (dataIndex === 2) return 'bottom';  // C类转化率
+                                if (dataIndex === 3) return 'bottom';  // A类二次到店率
+                                if (dataIndex === 4) return 'top';     // B类二次到店率
+                                if (dataIndex === 5) return 'top';     // C类二次到店率
+                                if (dataIndex === 6) return 'bottom';  // D类二次到店率 - 向下对齐
+                                return 'bottom';
+                            },
+                            offset: function(context) {
+                                const dataIndex = context.dataIndex;
+                                // 调整偏移量确保不重叠
+                                if (dataIndex === 0) return 10;  // A类转化率 - 适中偏移
+                                if (dataIndex === 6) return 10;  // D类二次到店率 - 适中偏移
+                                return 8;  // 其他维度保持适中偏移
+                            }
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        datalabels: {
+                            display: showDataLabels
+                        },
+                        // 自定义插件：绘制0值指示线
+                        afterDraw: function(chart) {
+                            const ctx = chart.ctx;
+                            const meta = chart.getDatasetMeta(0);
+
+                            // 只在有0值时绘制指示线
+                            const zeroValueIndices = originalData.map((val, index) => val <= 1 ? index : -1).filter(i => i !== -1);
+
+                            if (zeroValueIndices.length === 0) return;
+
+                            const centerX = chart.chartArea.left + (chart.chartArea.width / 2);
+                            const centerY = chart.chartArea.top + (chart.chartArea.height / 2);
+                            const radius = Math.min(chart.chartArea.width, chart.chartArea.height) / 2;
+
+                            zeroValueIndices.forEach(dataIndex => {
+                                const point = meta.data[dataIndex];
+                                if (!point) return;
+
+                                // 计算角度和终点位置（更远的位置）
+                                const angle = point.startAngle + (point.endAngle - point.startAngle) / 2;
+                                const lineLength = radius * 1.3; // 延长到图表外部
+
+                                const endX = centerX + Math.cos(angle) * lineLength;
+                                const endY = centerY + Math.sin(angle) * lineLength;
+
+                                // 绘制虚线指示线
+                                ctx.save();
+                                ctx.strokeStyle = 'rgba(255, 193, 7, 0.6)';
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([5, 5]); // 虚线样式
+                                ctx.beginPath();
+                                ctx.moveTo(centerX, centerY);
+                                ctx.lineTo(endX, endY);
+                                ctx.stroke();
+
+                                // 在终点绘制小圆点
+                                ctx.setLineDash([]);
+                                ctx.fillStyle = 'rgb(255, 193, 7)';
+                                ctx.beginPath();
+                                ctx.arc(endX, endY, 4, 0, 2 * Math.PI);
+                                ctx.fill();
+
+                                ctx.restore();
+                            });
+                        },
+                        legend: {
+                            display: false // 使用自定义图例
+                        },
+                        tooltip: {
+                            enabled: true,
+                            mode: 'point',
+                            intersect: true,
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label;
+                                    const dimension = context.label;
+                                    const datasetIndex = context.datasetIndex;
+
+                                    // 根据数据集类型显示正确的数值
+                                    if (datasetIndex === 0) {
+                                        // 实际表现数据集 - 显示原始数据
+                                        const originalValue = originalData[context.dataIndex];
+                                        return `${datasetLabel}: ${originalValue.toFixed(1)}%`;
+                                    } else if (datasetIndex === 1) {
+                                        // 及格标准线 - 显示真实及格值
+                                        const passValue = standards[dimension].pass;
+                                        return `${datasetLabel}: ${passValue}%`;
+                                    } else if (datasetIndex === 2) {
+                                        // 优秀标准线 - 显示真实优秀值
+                                        const excellentValue = standards[dimension].excellent;
+                                        return `${datasetLabel}: ${excellentValue}%`;
+                                    }
+
+                                    return `${datasetLabel}: ${context.parsed.r.toFixed(1)}%`;
+                                },
+                                afterLabel: function(context) {
+                                    const dimension = context.label;
+                                    const datasetIndex = context.datasetIndex;
+                                    let result = [];
+
+                                    // 只对实际表现数据集(索引0)显示排名
+                                    if (datasetIndex === 0 && rankings[dimension]) {
+                                        const rank = rankings[dimension];
+                                        result.push(`全店第${rank.storeRank}名(共${rank.totalStore}人)`);
+                                        result.push(`全公司第${rank.companyRank}名(共${rank.totalCompany}人)`);
+                                    }
+                                    return result;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: axisMax,
+                            min: 0,
+                            ticks: {
+                                display: false // 完全隐藏所有刻度显示
+                            },
+                            pointLabels: {
+                                font: {
+                                    size: 12,
+                                    weight: 'bold'
+                                },
+                                callback: function(label, index) {
+                                    // 只显示维度名称，不显示顶点值
+                                    return label;
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            },
+                            angleLines: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
